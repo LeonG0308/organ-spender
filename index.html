@@ -86,57 +86,59 @@
             margin-top: 1.5rem;
         }
 
+        .primary-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
         .btn-accept {
             background-color: #4CAF50;
             color: white;
             font-weight: bold;
             font-size: 1.1rem;
             padding: 1rem 2rem;
+            flex: 3; /* Größer als der Ablehnen-Button */
         }
 
         .btn-accept:hover {
             background-color: #45a049;
         }
 
-        .secondary-options {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-        }
-
-        .btn-customize {
+        .btn-reject {
             background-color: #f1f1f1;
             color: #666;
+            font-size: 0.95rem;
+            padding: 0.75rem 1rem;
             flex: 1;
-            max-width: 300px;
-        }
-
-        .btn-customize:hover {
-            background-color: #e5e5e5;
-        }
-
-        .btn-reject {
-            background-color: #f44336;
-            color: white;
-            margin-bottom: 1rem;
-            width: 100%;
-            padding: 0.75rem;
         }
 
         .btn-reject:hover {
-            background-color: #d32f2f;
+            background-color: #e5e5e5;
+        }
+
+        .secondary-options {
+            display: flex;
+            justify-content: center;
+        }
+
+        .btn-customize {
+            background-color: transparent;
+            color: #666;
+            border: none;
+            padding: 0.5rem;
+            font-size: 0.9rem;
+            text-decoration: underline;
+        }
+
+        .btn-customize:hover {
+            color: #333;
+            transform: none;
         }
 
         .cookie-customize {
             margin-top: 1.5rem;
             border-top: 1px solid #eee;
             padding-top: 1.5rem;
-        }
-
-        .cookie-reject-section {
-            margin-bottom: 1.5rem;
-            padding-bottom: 1.5rem;
-            border-bottom: 1px solid #eee;
         }
 
         .cookie-type {
@@ -165,13 +167,12 @@
         }
 
         @media (max-width: 768px) {
-            .secondary-options {
+            .primary-buttons {
                 flex-direction: column;
-                align-items: center;
             }
             
             .btn-customize {
-                width: 100%;
+                margin-top: 0.5rem;
             }
         }
     </style>
@@ -190,20 +191,18 @@
                 <p>Wir verwenden Cookies, um Ihnen die bestmögliche Erfahrung auf unserer Website zu bieten. Durch die Nutzung unserer Website stimmen Sie der Verwendung von Cookies gemäß unserer Datenschutzrichtlinie zu.</p>
                 
                 <div class="cookie-options">
-                    <button id="accept-cookies" class="btn-accept">Alle Cookies akzeptieren</button>
+                    <div class="primary-buttons">
+                        <button id="accept-cookies" class="btn-accept">Cookies akzeptieren</button>
+                        <button id="reject-cookies" class="btn-reject">Ablehnen</button>
+                    </div>
                     
                     <div class="secondary-options">
-                        <button id="customize-cookies" class="btn-customize">Cookie-Einstellungen</button>
+                        <button id="customize-cookies" class="btn-customize">Einstellungen anpassen</button>
                     </div>
                 </div>
                 
                 <div id="cookie-customize" class="cookie-customize hidden">
                     <h3>Cookie-Einstellungen anpassen</h3>
-                    
-                    <div class="cookie-reject-section">
-                        <button id="reject-cookies" class="btn-reject">Alle Cookies ablehnen</button>
-                        <p class="cookie-description">Sie können alle nicht-essentiellen Cookies ablehnen.</p>
-                    </div>
                     
                     <div class="cookie-type">
                         <input type="checkbox" id="essential" checked disabled>
@@ -254,7 +253,7 @@
                 window.location.href = "survey.html";
             });
             
-            // Reject cookies (now in customize menu)
+            // Reject cookies (jetzt wieder als direkter Button)
             document.getElementById("reject-cookies").addEventListener("click", function() {
                 recordCookieChoice("reject");
                 document.getElementById("cookie-banner").style.display = "none";
