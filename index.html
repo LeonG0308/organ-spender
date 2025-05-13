@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organ-Spender.de</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <h1>Organ-Spender.de</h1>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div id="cookie-banner" class="cookie-banner">
+            <div class="cookie-content">
+                <h2>Cookie-Einstellungen</h2>
+                <p>Wir verwenden Cookies, um Ihnen die bestmögliche Erfahrung auf unserer Website zu bieten. Durch die Nutzung unserer Website stimmen Sie der Verwendung von Cookies gemäß unserer Datenschutzrichtlinie zu.</p>
+                
+                <div class="cookie-options">
+                    <button id="accept-cookies" class="btn-accept">Alle Cookies akzeptieren</button>
+                    
+                    <div class="secondary-options">
+                        <button id="customize-cookies" class="btn-customize">Einstellungen anpassen</button>
+                        <button id="reject-cookies" class="btn-reject">Nur notwendige Cookies</button>
+                    </div>
+                </div>
+                
+                <div id="cookie-customize" class="cookie-customize hidden">
+                    <h3>Cookie-Einstellungen anpassen</h3>
+                    <div class="cookie-type">
+                        <input type="checkbox" id="essential" checked disabled>
+                        <label for="essential">Notwendige Cookies (erforderlich)</label>
+                        <p class="cookie-description">Diese Cookies sind für die Grundfunktionen der Website erforderlich und können nicht deaktiviert werden.</p>
+                    </div>
+                    
+                    <div class="cookie-type">
+                        <input type="checkbox" id="functional">
+                        <label for="functional">Funktionale Cookies</label>
+                        <p class="cookie-description">Diese Cookies ermöglichen erweiterte Funktionen und Personalisierung.</p>
+                    </div>
+                    
+                    <div class="cookie-type">
+                        <input type="checkbox" id="analytics">
+                        <label for="analytics">Analyse-Cookies</label>
+                        <p class="cookie-description">Diese Cookies helfen uns, zu verstehen, wie Besucher mit unserer Website interagieren.</p>
+                    </div>
+                    
+                    <div class="cookie-type">
+                        <input type="checkbox" id="marketing">
+                        <label for="marketing">Marketing-Cookies</label>
+                        <p class="cookie-description">Diese Cookies werden verwendet, um relevante Werbung anzuzeigen.</p>
+                    </div>
+                    
+                    <div class="cookie-customize-buttons">
+                        <button id="save-preferences" class="btn-save">Einstellungen speichern</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

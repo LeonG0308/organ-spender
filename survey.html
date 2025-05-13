@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organ-Spender.de - Umfrage</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <h1>Organ-Spender.de</h1>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div id="survey" class="survey-container">
+            <h2>Umfrage zur Organspende</h2>
+            
+            <div class="survey-description">
+                <p>Vielen Dank für Ihre Teilnahme an unserer Umfrage. Bitte beantworten Sie die folgende Frage:</p>
+            </div>
+            
+            <div class="survey-question">
+                <h3>Würden Sie im Falle Ihres Todes Ihre Organe spenden?</h3>
+                
+                <div class="answer-options">
+                    <button id="answer-yes" class="btn-yes">Ja</button>
+                    <button id="answer-no" class="btn-no">Nein</button>
+                </div>
+                
+                <div class="survey-submit">
+                    <button id="submit-survey" class="btn-submit" disabled>Absenden</button>
+                </div>
+            </div>
+            
+            <div id="thank-you" class="thank-you hidden">
+                <h3>Vielen Dank für Ihre Teilnahme!</h3>
+                <p>Ihre Antwort wurde erfolgreich aufgezeichnet. Wir schätzen Ihren Beitrag zu unserer Studie.</p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
