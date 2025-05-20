@@ -743,7 +743,7 @@
                 data: {
                     labels: ['Cookies akzeptiert', 'Cookies abgelehnt'],
                     datasets: [{
-                        label: 'Anzahl der Teilnehmer',
+                        label: '',
                         data: [acceptCount, rejectCount],
                         backgroundColor: [
                             'rgba(76, 175, 80, 0.8)', // Green
@@ -773,6 +773,9 @@
                             font: {
                                 size: 16
                             }
+                        },
+                        legend: {
+                            display: false
                         }
                     },
                     maintainAspectRatio: false // Wichtig, damit Chart sich an Container anpasst
@@ -894,7 +897,7 @@
                 data: {
                     labels: ['Ja', 'Nein'],
                     datasets: [{
-                        label: 'Anzahl der Antworten',
+                        label: '',
                         data: [yesCount, noCount],
                         backgroundColor: [
                             'rgba(76, 175, 80, 0.8)', // Green
@@ -924,6 +927,9 @@
                             font: {
                                 size: 16
                             }
+                        },
+                        legend: {
+                            display: false
                         }
                     },
                     maintainAspectRatio: false // Wichtig, damit Chart sich an Container anpasst
@@ -1048,7 +1054,7 @@
                 data: {
                     labels: sortedData.map(item => item.category), // Kategoriename als Label
                     datasets: [{
-                        label: 'Anzahl der Defaults',
+                        label: '',
                         data: sortedData.map(item => item.count),
                         backgroundColor: sortedData.map(item => categoryColors[item.category]),
                         borderColor: sortedData.map(item => categoryBorderColors[item.category]),
