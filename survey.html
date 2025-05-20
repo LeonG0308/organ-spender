@@ -98,21 +98,21 @@
         }
 
         .btn-yes {
-            background-color: #6247AA; /* PowerPoint purple */
+            background-color: #4CAF50; /* Ursprüngliches Grün */
             color: white;
         }
 
         .btn-no {
-            background-color: #99E1E5; /* PowerPoint light blue */
-            color: #333;
+            background-color: #f44336; /* Ursprüngliches Rot */
+            color: white;
         }
 
         .btn-yes:hover {
-            background-color: #513c8c; /* Darker purple */
+            background-color: #45a049; /* Dunkleres Grün */
         }
 
         .btn-no:hover {
-            background-color: #7cc8cc; /* Darker light blue */
+            background-color: #d32f2f; /* Dunkleres Rot */
         }
 
         .btn-yes.selected, .btn-no.selected {
@@ -182,7 +182,46 @@
     </div>
     
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        // Firebase Konfiguration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCEVoOcAAN0K-r63wh_dIJ3cmOt3Hmkkbg",
+            authDomain: "nudging-experiment.firebaseapp.com",
+            projectId: "nudging-experiment",
+            storageBucket: "nudging-experiment.appspot.com",
+            messagingSenderId: "340323415578",
+            appId: "1:340323415578:web:e4fe9e0b93d2f18c6889ca",
+            databaseURL: "https://nudging-experiment-default-rtdb.europe-west1.firebasedatabase.app"
+        };
+
+        // Firebase initialisieren
+        function loadFirebase() {
+            if (typeof firebase === 'undefined') {
+                // Firebase noch nicht geladen, Script einfügen
+                const script = document.createElement('script');
+                script.src = 'https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js';
+                script.onload = function() {
+                    // Firebase Datenbank-Modul laden
+                    const dbScript = document.createElement('script');
+                    dbScript.src = 'https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js';
+                    dbScript.onload = function() {
+                        // Firebase initialisieren und App starten
+                        firebase.initializeApp(firebaseConfig);
+                        initApp();
+                    };
+                    document.head.appendChild(dbScript);
+                };
+                document.head.appendChild(script);
+            } else {
+                // Firebase bereits geladen
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                initApp();
+            }
+        }
+
+        // App initialisieren
+        function initApp() {
             let selectedAnswer = null;
             
             // Handle answer selection
@@ -204,7 +243,16 @@
             // Handle survey submission
             document.getElementById("submit-survey").addEventListener("click", function() {
                 if (selectedAnswer) {
-                    // Record the answer
+                    // Record the answer in Firebase
+                    const db = firebase.database();
+                    const surveyRef = db.ref('surveyAnswers');
+                    
+                    surveyRef.push({
+                        answer: selectedAnswer,
+                        timestamp: new Date().toISOString()
+                    });
+                    
+                    // Auch in localStorage speichern für lokale Nutzung
                     const surveyAnswers = getStoredData('surveyAnswers', []);
                     surveyAnswers.push({
                         answer: selectedAnswer,
@@ -227,7 +275,10 @@
             function storeData(key, data) {
                 localStorage.setItem(key, JSON.stringify(data));
             }
-        });
+        }
+
+        // Lade Firebase und starte die App
+        loadFirebase();
     </script>
 </body>
 </html>
