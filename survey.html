@@ -91,32 +91,32 @@
             margin-bottom: 2rem;
         }
 
-        .btn-yes, .btn-no {
+        .checkbox-container {
             flex: 1;
-            font-size: 1.1rem;
             padding: 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
         }
 
-        .btn-yes {
-            background-color: #4CAF50; /* Ursprüngliches Grün */
+        .yes-option {
+            background-color: #4CAF50; /* Grün */
             color: white;
         }
 
-        .btn-no {
-            background-color: #f44336; /* Ursprüngliches Rot */
+        .no-option {
+            background-color: #f44336; /* Rot */
             color: white;
         }
 
-        .btn-yes:hover {
-            background-color: #45a049; /* Dunkleres Grün */
+        .checkbox-label {
+            margin-left: 0.5rem;
+            font-size: 1.1rem;
         }
 
-        .btn-no:hover {
-            background-color: #d32f2f; /* Dunkleres Rot */
-        }
-
-        .btn-yes.selected, .btn-no.selected {
-            box-shadow: 0 0 0 3px #444444; /* Angepasst an den grauen Header */
+        input[type="checkbox"] {
+            transform: scale(1.5);
         }
 
         .survey-submit {
@@ -165,12 +165,18 @@
                 <h3>Würden Sie im Falle Ihres Todes Ihre Organe spenden?</h3>
                 
                 <div class="answer-options">
-                    <button id="answer-yes" class="btn-yes">Ja</button>
-                    <button id="answer-no" class="btn-no">Nein</button>
+                    <label class="checkbox-container yes-option">
+                        <input type="checkbox" id="answer-yes" name="organ-donation" checked>
+                        <span class="checkbox-label">Ja</span>
+                    </label>
+                    <label class="checkbox-container no-option">
+                        <input type="checkbox" id="answer-no" name="organ-donation">
+                        <span class="checkbox-label">Nein</span>
+                    </label>
                 </div>
                 
                 <div class="survey-submit">
-                    <button id="submit-survey" class="btn-submit" disabled>Absenden</button>
+                    <button id="submit-survey" class="btn-submit">Absenden</button>
                 </div>
             </div>
             
@@ -222,21 +228,30 @@
 
         // App initialisieren
         function initApp() {
-            let selectedAnswer = null;
+            let selectedAnswer = "yes"; // Default auf "yes" gesetzt, da vorausgewählt
             
-            // Handle answer selection
-            document.querySelectorAll("#answer-yes, #answer-no").forEach(button => {
-                button.addEventListener("click", function() {
-                    selectedAnswer = this.id === "answer-yes" ? "yes" : "no";
-                    
-                    // Highlight selected button
-                    document.querySelectorAll(".btn-yes, .btn-no").forEach(btn => {
-                        btn.classList.remove("selected");
-                    });
-                    this.classList.add("selected");
-                    
-                    // Enable submit button
-                    document.getElementById("submit-survey").disabled = false;
+            // Handle checkbox selection
+            document.querySelectorAll('input[name="organ-donation"]').forEach(checkbox => {
+                checkbox.addEventListener("change", function() {
+                    // Wenn diese Checkbox aktiviert wurde
+                    if (this.checked) {
+                        // Die andere deaktivieren
+                        const otherCheckbox = this.id === "answer-yes" ? 
+                            document.getElementById("answer-no") : 
+                            document.getElementById("answer-yes");
+                        otherCheckbox.checked = false;
+                        
+                        // Setze den ausgewählten Wert
+                        selectedAnswer = this.id === "answer-yes" ? "yes" : "no";
+                    } else {
+                        // Wenn keine der Checkboxen ausgewählt ist, wähle die andere aus
+                        // Dies stellt sicher, dass immer eine Option ausgewählt ist
+                        const otherCheckbox = this.id === "answer-yes" ? 
+                            document.getElementById("answer-no") : 
+                            document.getElementById("answer-yes");
+                        otherCheckbox.checked = true;
+                        selectedAnswer = this.id === "answer-yes" ? "no" : "yes";
+                    }
                 });
             });
             
@@ -257,28 +272,3 @@
                     surveyAnswers.push({
                         answer: selectedAnswer,
                         timestamp: new Date().toISOString()
-                    });
-                    storeData('surveyAnswers', surveyAnswers);
-                    
-                    // Show thank you message
-                    document.querySelector(".survey-question").style.display = "none";
-                    document.getElementById("thank-you").classList.remove("hidden");
-                }
-            });
-            
-            // Helper Funktionen für localStorage
-            function getStoredData(key, defaultValue = []) {
-                const data = localStorage.getItem(key);
-                return data ? JSON.parse(data) : defaultValue;
-            }
-
-            function storeData(key, data) {
-                localStorage.setItem(key, JSON.stringify(data));
-            }
-        }
-
-        // Lade Firebase und starte die App
-        loadFirebase();
-    </script>
-</body>
-</html>

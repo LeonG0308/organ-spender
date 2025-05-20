@@ -136,6 +136,7 @@
             flex: 1;
             min-width: 300px;
             height: 300px; /* Reduced height */
+            margin-bottom: 2rem; /* Ensures space below the chart */
         }
 
         .stats-summary {
@@ -168,7 +169,8 @@
         .admin-controls {
             display: flex;
             gap: 1rem;
-            margin-top: 1rem;
+            margin-top: 2rem;
+            clear: both; /* Ensure controls are below chart */
         }
 
         .btn-refresh {
@@ -239,6 +241,7 @@
             flex: 1;
             min-width: 600px;
             height: 400px;
+            margin-bottom: 2rem; /* Ensures space below the chart */
         }
 
         .category-container {
@@ -253,9 +256,10 @@
 
         .chart-labels {
             display: flex;
-            justify-content: space-between;
+            justify-content: space-around;
             margin-top: 0.5rem;
-            padding: 0 1rem;
+            width: 100%;
+            position: relative;
         }
         
         .chart-label {
@@ -270,12 +274,12 @@
         }
 
         .category-header {
-            background-color: #99E1E5; /* PowerPoint light blue */
             padding: 0.5rem;
             border-radius: 4px;
             display: flex;
             justify-content: space-between;
             margin-bottom: 0.5rem;
+            color: white;
         }
 
         .category-title {
@@ -283,8 +287,7 @@
         }
 
         .category-count {
-            background-color: #6247AA; /* PowerPoint purple */
-            color: white;
+            background-color: rgba(255, 255, 255, 0.3);
             padding: 0.1rem 0.5rem;
             border-radius: 3px;
             font-size: 0.9rem;
@@ -542,10 +545,17 @@
             });
             
             confirmResetCookies.addEventListener("click", function() {
-                localStorage.removeItem('cookieChoices');
-                localStorage.removeItem('surveyAnswers');
-                resetCookiesConfirm.classList.add("hidden");
-                loadCookieData();
+                // Firebase und localStorage zurücksetzen
+                const db = firebase.database();
+                const cookiesRef = db.ref('cookieChoices');
+                cookiesRef.remove().then(() => {
+                    localStorage.removeItem('cookieChoices');
+                    localStorage.removeItem('surveyAnswers');
+                    resetCookiesConfirm.classList.add("hidden");
+                    loadCookieData();
+                }).catch(error => {
+                    console.error("Fehler beim Zurücksetzen der Daten:", error);
+                });
             });
             
             // Event-Listener für Defaults-Dashboard
@@ -562,9 +572,16 @@
             });
             
             confirmResetDefaults.addEventListener("click", function() {
-                localStorage.removeItem('userDefaults');
-                resetDefaultsConfirm.classList.add("hidden");
-                loadDefaultsData();
+                // Firebase und localStorage zurücksetzen
+                const db = firebase.database();
+                const defaultsRef = db.ref('userDefaults');
+                defaultsRef.remove().then(() => {
+                    localStorage.removeItem('userDefaults');
+                    resetDefaultsConfirm.classList.add("hidden");
+                    loadDefaultsData();
+                }).catch(error => {
+                    console.error("Fehler beim Zurücksetzen der Daten:", error);
+                });
             });
             
             // Helper-Funktion für localStorage
@@ -627,27 +644,70 @@
             // Cookie-Daten laden
             function loadCookieData() {
                 console.log("Cookie-Daten werden geladen"); // Debug-Meldung
-                const cookieChoices = getStoredData('cookieChoices', []);
                 
-                // Zähle Akzeptiert und Abgelehnt
-                const acceptCount = cookieChoices.filter(choice => choice.choice === 'accept').length;
-                const rejectCount = cookieChoices.filter(choice => choice.choice === 'reject').length;
-                const totalCount = acceptCount + rejectCount;
+                // Firebase laden
+                const db = firebase.database();
+                const cookiesRef = db.ref('cookieChoices');
                 
-                console.log(`Cookie-Daten geladen: ${acceptCount} akzeptiert, ${rejectCount} abgelehnt`); // Debug-Meldung
-                
-                // Aktualisiere Diagramm
-                initCookieChart(acceptCount, rejectCount);
-                
-                // Aktualisiere Statistik-Zusammenfassung
-                document.getElementById("accept-count").textContent = acceptCount;
-                document.getElementById("reject-count").textContent = rejectCount;
-                document.getElementById("total-count").textContent = totalCount;
-                
-                // Berechne und aktualisiere die Akzeptanzrate
-                const acceptRate = totalCount > 0 ? 
-                    Math.round((acceptCount / totalCount) * 100) : 0;
-                document.getElementById("accept-rate").textContent = acceptRate + "%";
+                cookiesRef.once('value')
+                    .then((snapshot) => {
+                        const firebaseCookies = [];
+                        
+                        // Konvertiere Firebase-Daten in ein Array
+                        snapshot.forEach((childSnapshot) => {
+                            const data = childSnapshot.val();
+                            firebaseCookies.push(data);
+                        });
+                        
+                        // Speichere auch in localStorage für lokale Nutzung
+                        localStorage.setItem('cookieChoices', JSON.stringify(firebaseCookies));
+                        
+                        // Zähle Akzeptiert und Abgelehnt
+                        const acceptCount = firebaseCookies.filter(choice => choice.choice === 'accept').length;
+                        const rejectCount = firebaseCookies.filter(choice => choice.choice === 'reject').length;
+                        const totalCount = acceptCount + rejectCount;
+                        
+                        console.log(`Cookie-Daten geladen: ${acceptCount} akzeptiert, ${rejectCount} abgelehnt`); // Debug-Meldung
+                        
+                        // Aktualisiere Diagramm
+                        initCookieChart(acceptCount, rejectCount);
+                        
+                        // Aktualisiere Statistik-Zusammenfassung
+                        document.getElementById("accept-count").textContent = acceptCount;
+                        document.getElementById("reject-count").textContent = rejectCount;
+                        document.getElementById("total-count").textContent = totalCount;
+                        
+                        // Berechne und aktualisiere die Akzeptanzrate
+                        const acceptRate = totalCount > 0 ? 
+                            Math.round((acceptCount / totalCount) * 100) : 0;
+                        document.getElementById("accept-rate").textContent = acceptRate + "%";
+                    })
+                    .catch((error) => {
+                        console.error("Fehler beim Laden der Cookie-Daten:", error);
+                        
+                        // Fallback zu localStorage
+                        const cookieChoices = getStoredData('cookieChoices', []);
+                        
+                        // Zähle Akzeptiert und Abgelehnt
+                        const acceptCount = cookieChoices.filter(choice => choice.choice === 'accept').length;
+                        const rejectCount = cookieChoices.filter(choice => choice.choice === 'reject').length;
+                        const totalCount = acceptCount + rejectCount;
+                        
+                        console.log(`Cookie-Daten aus localStorage geladen: ${acceptCount} akzeptiert, ${rejectCount} abgelehnt`); 
+                        
+                        // Aktualisiere Diagramm
+                        initCookieChart(acceptCount, rejectCount);
+                        
+                        // Aktualisiere Statistik-Zusammenfassung
+                        document.getElementById("accept-count").textContent = acceptCount;
+                        document.getElementById("reject-count").textContent = rejectCount;
+                        document.getElementById("total-count").textContent = totalCount;
+                        
+                        // Berechne und aktualisiere die Akzeptanzrate
+                        const acceptRate = totalCount > 0 ? 
+                            Math.round((acceptCount / totalCount) * 100) : 0;
+                        document.getElementById("accept-rate").textContent = acceptRate + "%";
+                    });
             }
             
             // Defaults-Diagramm initialisieren
@@ -718,27 +778,75 @@
             // Defaults-Daten laden und anzeigen
             function loadDefaultsData() {
                 console.log("Defaults-Daten werden geladen"); // Debug-Meldung
-                const userDefaults = getStoredData('userDefaults', []);
                 
-                // Zähle Defaults pro Kategorie
-                const categories = ['gesund', 'ungesund', 'spart Geld', 'kostet Geld', 
-                                    'schützt Privatsphäre', 'verletzt Privatsphäre', 
-                                    'fördert Nachhaltigkeit', 'ist umweltschädlich'];
-                                    
-                const categoryData = categories.map(category => {
-                    const defaultsInCategory = userDefaults.filter(d => d.category === category);
-                    return {
-                        category: category,
-                        count: defaultsInCategory.length,
-                        defaults: defaultsInCategory
-                    };
-                });
+                // Firebase laden
+                const db = firebase.database();
+                const defaultsRef = db.ref('userDefaults');
                 
-                // Aktualisiere Diagramm
-                initDefaultsChart(categoryData);
-                
-                // Aktualisiere Kategorie-Liste im neuen Format
-                updateCategoryDisplay(categoryData);
+                defaultsRef.once('value')
+                    .then((snapshot) => {
+                        const firebaseDefaults = [];
+                        
+                        // Konvertiere Firebase-Daten in ein Array
+                        snapshot.forEach((childSnapshot) => {
+                            const key = childSnapshot.key;
+                            const data = childSnapshot.val();
+                            
+                            firebaseDefaults.push({
+                                ...data,
+                                firebaseKey: key
+                            });
+                        });
+                        
+                        // Speichere auch in localStorage für lokale Nutzung
+                        localStorage.setItem('userDefaults', JSON.stringify(firebaseDefaults));
+                        
+                        // Zähle Defaults pro Kategorie
+                        const categories = ['gesund', 'ungesund', 'spart Geld', 'kostet Geld', 
+                                        'schützt Privatsphäre', 'verletzt Privatsphäre', 
+                                        'fördert Nachhaltigkeit', 'ist umweltschädlich'];
+                                        
+                        const categoryData = categories.map(category => {
+                            const defaultsInCategory = firebaseDefaults.filter(d => d.category === category);
+                            return {
+                                category: category,
+                                count: defaultsInCategory.length,
+                                defaults: defaultsInCategory
+                            };
+                        });
+                        
+                        // Aktualisiere Diagramm
+                        initDefaultsChart(categoryData);
+                        
+                        // Aktualisiere Kategorie-Liste im neuen Format
+                        updateCategoryDisplay(categoryData);
+                    })
+                    .catch((error) => {
+                        console.error("Fehler beim Laden der Defaults:", error);
+                        
+                        // Fallback zu localStorage
+                        const userDefaults = getStoredData('userDefaults', []);
+                        
+                        // Zähle Defaults pro Kategorie
+                        const categories = ['gesund', 'ungesund', 'spart Geld', 'kostet Geld', 
+                                        'schützt Privatsphäre', 'verletzt Privatsphäre', 
+                                        'fördert Nachhaltigkeit', 'ist umweltschädlich'];
+                                        
+                        const categoryData = categories.map(category => {
+                            const defaultsInCategory = userDefaults.filter(d => d.category === category);
+                            return {
+                                category: category,
+                                count: defaultsInCategory.length,
+                                defaults: defaultsInCategory
+                            };
+                        });
+                        
+                        // Aktualisiere Diagramm
+                        initDefaultsChart(categoryData);
+                        
+                        // Aktualisiere Kategorie-Liste im neuen Format
+                        updateCategoryDisplay(categoryData);
+                    });
             }
             
             // Kategorie-Anzeige aktualisieren
@@ -750,9 +858,11 @@
                 
                 sortedData.forEach(item => {
                     if (item.count > 0) { // Zeige nur Kategorien mit mindestens einem Eintrag
+                        const categoryColor = categoryBorderColors[item.category] || '#6247AA';
+                        
                         displayHTML += `
                             <div class="category-entries">
-                                <div class="category-header">
+                                <div class="category-header" style="background-color: ${categoryColor};">
                                     <span class="category-title">${item.category}</span>
                                     <span class="category-count">${item.count}</span>
                                 </div>
@@ -777,6 +887,37 @@
                 
                 categoryContainer.innerHTML = displayHTML;
             }
+            
+            // Firebase initialisieren
+            function loadFirebase() {
+                if (typeof firebase === 'undefined') {
+                    // Firebase noch nicht geladen, Script einfügen
+                    const script = document.createElement('script');
+                    script.src = 'https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js';
+                    script.onload = function() {
+                        // Firebase Datenbank-Modul laden
+                        const dbScript = document.createElement('script');
+                        dbScript.src = 'https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js';
+                        dbScript.onload = function() {
+                            // Firebase initialisieren
+                            firebase.initializeApp({
+                                apiKey: "AIzaSyCEVoOcAAN0K-r63wh_dIJ3cmOt3Hmkkbg",
+                                authDomain: "nudging-experiment.firebaseapp.com",
+                                projectId: "nudging-experiment",
+                                storageBucket: "nudging-experiment.appspot.com",
+                                messagingSenderId: "340323415578",
+                                appId: "1:340323415578:web:e4fe9e0b93d2f18c6889ca",
+                                databaseURL: "https://nudging-experiment-default-rtdb.europe-west1.firebasedatabase.app"
+                            });
+                        };
+                        document.head.appendChild(dbScript);
+                    };
+                    document.head.appendChild(script);
+                }
+            }
+            
+            // Firebase laden
+            loadFirebase();
         });
     </script>
 </body>
