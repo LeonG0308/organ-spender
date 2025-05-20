@@ -21,7 +21,7 @@
         }
 
         .header {
-            background-color: #444444;
+            background-color: #6247AA; /* PowerPoint purple */
             color: white;
             padding: 1rem;
             text-align: center;
@@ -120,8 +120,8 @@
         }
 
         .tab-btn.active {
-            color: #444444;
-            border-bottom-color: #444444;
+            color: #6247AA; /* PowerPoint purple */
+            border-bottom-color: #6247AA; /* PowerPoint purple */
             font-weight: bold;
         }
 
@@ -135,7 +135,7 @@
         .chart-container {
             flex: 1;
             min-width: 300px;
-            height: 400px;
+            height: 300px; /* Reduced height */
         }
 
         .stats-summary {
@@ -162,17 +162,17 @@
 
         .stat-value {
             font-size: 1.2rem;
-            color: #444444;
+            color: #6247AA; /* PowerPoint purple */
         }
 
         .admin-controls {
             display: flex;
             gap: 1rem;
-            margin-top: 2rem;
+            margin-top: 1rem;
         }
 
         .btn-refresh {
-            background-color: #555555;
+            background-color: #6247AA; /* PowerPoint purple */
             color: white;
         }
 
@@ -182,7 +182,7 @@
         }
 
         .btn-refresh:hover {
-            background-color: #333333;
+            background-color: #513c8c; /* Darker purple */
         }
 
         .btn-reset:hover {
@@ -221,54 +221,91 @@
             background-color: #e5e5e5;
         }
 
-        /* Defaults Dashboard Styles */
-        .category-list {
+        /* Defaults Dashboard Styles - Redesigned for better visibility */
+        .defaults-dashboard-container {
             display: flex;
             flex-direction: column;
-            gap: 1.5rem;
-            margin-top: 2rem;
+            gap: 1rem;
         }
 
-        .category-item {
-            padding: 1rem;
-            border-radius: 8px;
+        .defaults-data-container {
+            display: flex;
+            flex-direction: row;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .defaults-chart-container {
+            flex: 1;
+            min-width: 600px;
+            height: 400px;
+        }
+
+        .category-container {
+            flex: 1;
+            min-width: 330px;
+            max-height: 500px;
+            overflow-y: auto;
             background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .chart-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            padding: 0 1rem;
+        }
+        
+        .chart-label {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #333;
+            flex: 1;
+        }
+
+        .category-entries {
+            margin-top: 1rem;
         }
 
         .category-header {
+            background-color: #99E1E5; /* PowerPoint light blue */
+            padding: 0.5rem;
+            border-radius: 4px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
             margin-bottom: 0.5rem;
+        }
+
+        .category-title {
             font-weight: bold;
         }
 
         .category-count {
-            background-color: #444444;
+            background-color: #6247AA; /* PowerPoint purple */
             color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
+            padding: 0.1rem 0.5rem;
+            border-radius: 3px;
             font-size: 0.9rem;
         }
 
-        .category-defaults {
-            margin-top: 0.5rem;
+        .category-entries-list {
+            margin: 0.5rem 0 1.5rem 0;
             padding-left: 1rem;
         }
 
-        .default-entry {
-            margin-bottom: 0.5rem;
-            padding-bottom: 0.5rem;
+        .entry-item {
+            padding: 0.3rem 0;
             border-bottom: 1px dashed #ddd;
         }
 
-        .no-entries {
-            font-style: italic;
-            color: #666;
+        .entry-item:last-child {
+            border-bottom: none;
         }
 
         @media (max-width: 768px) {
-            .stats-container {
+            .defaults-data-container {
                 flex-direction: column;
             }
         }
@@ -284,7 +321,7 @@
             <h2>Admin Login</h2>
             <div class="login-form">
                 <input type="password" id="password" placeholder="Passwort eingeben">
-                <button id="login-btn">Einloggen</button>
+                <button id="login-btn" style="background-color: #6247AA; color: white;">Einloggen</button>
                 <p id="login-error" class="error hidden">Falsches Passwort. Bitte versuchen Sie es erneut.</p>
             </div>
         </div>
@@ -338,30 +375,35 @@
                 </div>
             </div>
             
-            <!-- Defaults Dashboard -->
+            <!-- Defaults Dashboard - Redesigned -->
             <div id="defaults-dashboard" class="dashboard-content hidden">
                 <h2>Default-Statistiken</h2>
                 
-                <div class="stats-container">
-                    <div class="chart-container">
-                        <canvas id="defaults-chart"></canvas>
+                <div class="defaults-dashboard-container">
+                    <div class="defaults-data-container">
+                        <div class="defaults-chart-container">
+                            <canvas id="defaults-chart"></canvas>
+                            <div id="chart-labels" class="chart-labels">
+                                <!-- Labels will be filled dynamically -->
+                            </div>
+                        </div>
+                        
+                        <div id="category-container" class="category-container">
+                            <!-- Category entries will be filled dynamically -->
+                        </div>
                     </div>
-                </div>
-                
-                <div id="category-list" class="category-list">
-                    <!-- Kategorien werden hier dynamisch eingefügt -->
-                </div>
-                
-                <div class="admin-controls">
-                    <button id="refresh-defaults-btn" class="btn-refresh">Daten aktualisieren</button>
-                    <button id="reset-defaults-btn" class="btn-reset">Alle Daten zurücksetzen</button>
-                </div>
-                
-                <div id="reset-defaults-confirm" class="reset-confirm hidden">
-                    <p>Sind Sie sicher, dass Sie alle Default-Daten zurücksetzen möchten? Diese Aktion kann nicht rückgängig gemacht werden.</p>
-                    <div class="reset-buttons">
-                        <button id="confirm-reset-defaults" class="btn-danger">Ja, zurücksetzen</button>
-                        <button id="cancel-reset-defaults" class="btn-cancel">Abbrechen</button>
+                    
+                    <div class="admin-controls">
+                        <button id="refresh-defaults-btn" class="btn-refresh">Daten aktualisieren</button>
+                        <button id="reset-defaults-btn" class="btn-reset">Alle Daten zurücksetzen</button>
+                    </div>
+                    
+                    <div id="reset-defaults-confirm" class="reset-confirm hidden">
+                        <p>Sind Sie sicher, dass Sie alle Default-Daten zurücksetzen möchten? Diese Aktion kann nicht rückgängig gemacht werden.</p>
+                        <div class="reset-buttons">
+                            <button id="confirm-reset-defaults" class="btn-danger">Ja, zurücksetzen</button>
+                            <button id="cancel-reset-defaults" class="btn-cancel">Abbrechen</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -380,25 +422,25 @@
             
             // Kategorie-Farben für das Default-Diagramm
             const categoryColors = {
-                'gesund': 'rgba(75, 192, 192, 0.8)',
-                'ungesund': 'rgba(255, 99, 132, 0.8)',
-                'spart Geld': 'rgba(54, 162, 235, 0.8)',
-                'kostet Geld': 'rgba(255, 159, 64, 0.8)',
-                'schützt Privatsphäre': 'rgba(153, 102, 255, 0.8)',
-                'verletzt Privatsphäre': 'rgba(255, 205, 86, 0.8)',
-                'fördert Nachhaltigkeit': 'rgba(75, 192, 75, 0.8)',
-                'ist umweltschädlich': 'rgba(201, 203, 207, 0.8)'
+                'gesund': 'rgba(98, 71, 170, 0.8)', // PowerPoint purple
+                'ungesund': 'rgba(153, 225, 229, 0.8)', // PowerPoint light blue
+                'spart Geld': 'rgba(159, 129, 219, 0.8)', // Light purple
+                'kostet Geld': 'rgba(129, 212, 219, 0.8)', // Light blue
+                'schützt Privatsphäre': 'rgba(177, 156, 217, 0.8)', // Another purple shade
+                'verletzt Privatsphäre': 'rgba(179, 227, 229, 0.8)', // Another blue shade
+                'fördert Nachhaltigkeit': 'rgba(119, 93, 191, 0.8)', // Another purple shade
+                'ist umweltschädlich': 'rgba(110, 200, 209, 0.8)' // Another blue shade
             };
             
             const categoryBorderColors = {
-                'gesund': 'rgba(75, 192, 192, 1)',
-                'ungesund': 'rgba(255, 99, 132, 1)',
-                'spart Geld': 'rgba(54, 162, 235, 1)',
-                'kostet Geld': 'rgba(255, 159, 64, 1)',
-                'schützt Privatsphäre': 'rgba(153, 102, 255, 1)',
-                'verletzt Privatsphäre': 'rgba(255, 205, 86, 1)',
-                'fördert Nachhaltigkeit': 'rgba(75, 192, 75, 1)',
-                'ist umweltschädlich': 'rgba(201, 203, 207, 1)'
+                'gesund': 'rgba(98, 71, 170, 1)', // PowerPoint purple
+                'ungesund': 'rgba(153, 225, 229, 1)', // PowerPoint light blue
+                'spart Geld': 'rgba(159, 129, 219, 1)', // Light purple
+                'kostet Geld': 'rgba(129, 212, 219, 1)', // Light blue
+                'schützt Privatsphäre': 'rgba(177, 156, 217, 1)', // Another purple shade
+                'verletzt Privatsphäre': 'rgba(179, 227, 229, 1)', // Another blue shade
+                'fördert Nachhaltigkeit': 'rgba(119, 93, 191, 1)', // Another purple shade
+                'ist umweltschädlich': 'rgba(110, 200, 209, 1)' // Another blue shade
             };
             
             // DOM-Elemente
@@ -427,7 +469,8 @@
             const resetDefaultsConfirm = document.getElementById("reset-defaults-confirm");
             const confirmResetDefaults = document.getElementById("confirm-reset-defaults");
             const cancelResetDefaults = document.getElementById("cancel-reset-defaults");
-            const categoryList = document.getElementById("category-list");
+            const categoryContainer = document.getElementById("category-container");
+            const chartLabels = document.getElementById("chart-labels");
             
             // Login-Funktion
             function login() {
@@ -548,12 +591,12 @@
                             label: 'Anzahl der Teilnehmer',
                             data: [acceptCount, rejectCount],
                             backgroundColor: [
-                                'rgba(75, 192, 192, 0.8)',
-                                'rgba(255, 99, 132, 0.8)'
+                                'rgba(98, 71, 170, 0.8)', // PowerPoint purple
+                                'rgba(153, 225, 229, 0.8)' // PowerPoint light blue
                             ],
                             borderColor: [
-                                'rgba(75, 192, 192, 1)',
-                                'rgba(255, 99, 132, 1)'
+                                'rgba(98, 71, 170, 1)', // PowerPoint purple
+                                'rgba(153, 225, 229, 1)' // PowerPoint light blue
                             ],
                             borderWidth: 1
                         }]
@@ -623,7 +666,7 @@
                 defaultsChart = new Chart(ctx, {
                     type: 'bar',
                     data: {
-                        labels: sortedData.map(item => item.category),
+                        labels: sortedData.map(item => ''), // Empty labels, will display below graph
                         datasets: [{
                             label: 'Anzahl der Defaults',
                             data: sortedData.map(item => item.count),
@@ -649,10 +692,27 @@
                                 font: {
                                     size: 16
                                 }
+                            },
+                            legend: {
+                                display: false
                             }
                         }
                     }
                 });
+                
+                // Aktualisiere die Labels unter dem Diagramm
+                updateChartLabels(sortedData);
+            }
+            
+            // Chart Labels aktualisieren
+            function updateChartLabels(sortedData) {
+                let labelsHTML = '';
+                
+                sortedData.forEach(item => {
+                    labelsHTML += `<div class="chart-label" style="color: ${categoryBorderColors[item.category]}">${item.category}</div>`;
+                });
+                
+                chartLabels.innerHTML = labelsHTML;
             }
             
             // Defaults-Daten laden und anzeigen
@@ -677,45 +737,45 @@
                 // Aktualisiere Diagramm
                 initDefaultsChart(categoryData);
                 
-                // Aktualisiere Kategorie-Liste
-                updateCategoryList(categoryData);
+                // Aktualisiere Kategorie-Liste im neuen Format
+                updateCategoryDisplay(categoryData);
             }
             
-            // Kategorie-Liste aktualisieren
-            function updateCategoryList(categoryData) {
+            // Kategorie-Anzeige aktualisieren
+            function updateCategoryDisplay(categoryData) {
                 // Sortiere Kategorien nach Häufigkeit absteigend
                 const sortedData = [...categoryData].sort((a, b) => b.count - a.count);
                 
-                let listHTML = '';
+                let displayHTML = '';
                 
                 sortedData.forEach(item => {
-                    const backgroundColor = categoryColors[item.category];
-                    const borderColor = categoryBorderColors[item.category];
-                    
-                    listHTML += `
-                        <div class="category-item" style="border-left: 4px solid ${borderColor}">
-                            <div class="category-header">
-                                <span>${item.category}</span>
-                                <span class="category-count" style="background-color: ${borderColor}">${item.count}</span>
-                            </div>
-                            <div class="category-defaults">
-                    `;
-                    
-                    if (item.defaults.length > 0) {
+                    if (item.count > 0) { // Zeige nur Kategorien mit mindestens einem Eintrag
+                        displayHTML += `
+                            <div class="category-entries">
+                                <div class="category-header">
+                                    <span class="category-title">${item.category}</span>
+                                    <span class="category-count">${item.count}</span>
+                                </div>
+                                <div class="category-entries-list">
+                        `;
+                        
                         item.defaults.forEach(defaultItem => {
-                            listHTML += `<div class="default-entry">${defaultItem.text}</div>`;
+                            displayHTML += `<div class="entry-item">${defaultItem.text}</div>`;
                         });
-                    } else {
-                        listHTML += `<div class="no-entries">Keine Einträge in dieser Kategorie</div>`;
-                    }
-                    
-                    listHTML += `
+                        
+                        displayHTML += `
+                                </div>
                             </div>
-                        </div>
-                    `;
+                        `;
+                    }
                 });
                 
-                categoryList.innerHTML = listHTML;
+                // Wenn keine Daten vorhanden sind
+                if (displayHTML === '') {
+                    displayHTML = '<p>Keine Default-Daten vorhanden.</p>';
+                }
+                
+                categoryContainer.innerHTML = displayHTML;
             }
         });
     </script>

@@ -20,7 +20,7 @@
         }
 
         .header {
-            background-color: #444444;
+            background-color: #6247AA; /* PowerPoint purple */
             color: white;
             padding: 1rem;
             text-align: center;
@@ -82,13 +82,13 @@
         }
 
         .add-default-btn {
-            background-color: #555555;
+            background-color: #6247AA; /* PowerPoint purple */
             color: white;
             margin-bottom: 2rem;
         }
 
         .add-default-btn:hover {
-            background-color: #333333;
+            background-color: #513c8c; /* Darker purple */
         }
 
         .default-input-container {
@@ -97,6 +97,14 @@
             border: 1px solid #ddd;
             border-radius: 8px;
             background-color: #f9f9f9;
+        }
+
+        .instructions {
+            background-color: #99E1E5; /* PowerPoint light blue */
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            font-weight: 500;
         }
 
         .default-input-container textarea {
@@ -110,12 +118,12 @@
         }
 
         .default-input-container button {
-            background-color: #4CAF50;
+            background-color: #6247AA; /* PowerPoint purple */
             color: white;
         }
 
         .default-input-container button:hover {
-            background-color: #45a049;
+            background-color: #513c8c; /* Darker purple */
         }
 
         .defaults-list {
@@ -171,8 +179,10 @@
             
             <div id="default-input" class="default-input-container hidden">
                 <h3>Neuen Default hinzufügen</h3>
-                <p>Beschreiben Sie eine Alltagssituation, in der eine Standardeinstellung Ihre Entscheidung beeinflusst hat:</p>
-                <textarea id="default-text" placeholder="Beispiel: Bei meinen Smartphone-Einstellungen ist die automatische Datensicherung standardmäßig aktiviert..."></textarea>
+                <div class="instructions">
+                    Bitte beschreiben Sie kurz eine Alltagssituation, in der eine Standardeinstellung Ihre Entscheidung beeinflusst hat:
+                </div>
+                <textarea id="default-text" placeholder="Beispiel: Automatisches WhatsApp Backup"></textarea>
                 <button id="save-default-btn">Speichern</button>
             </div>
             
