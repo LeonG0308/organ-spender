@@ -21,7 +21,7 @@
         }
 
         .header {
-            background-color: #444444; /* Dunkelgrau statt Blau */
+            background-color: #444444;
             color: white;
             padding: 1rem;
             text-align: center;
@@ -98,6 +98,33 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
+        .dashboard-tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 2rem;
+        }
+
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            background-color: transparent;
+            color: #666;
+            border: none;
+            border-bottom: 3px solid transparent;
+            border-radius: 0;
+            margin-right: 1rem;
+        }
+
+        .tab-btn:hover {
+            color: #333;
+            transform: none;
+        }
+
+        .tab-btn.active {
+            color: #444444;
+            border-bottom-color: #444444;
+            font-weight: bold;
+        }
+
         .stats-container {
             display: flex;
             flex-wrap: wrap;
@@ -135,7 +162,7 @@
 
         .stat-value {
             font-size: 1.2rem;
-            color: #444444; /* Angepasst an grauen Header */
+            color: #444444;
         }
 
         .admin-controls {
@@ -145,7 +172,7 @@
         }
 
         .btn-refresh {
-            background-color: #555555; /* Dunkelgrau statt Blau */
+            background-color: #555555;
             color: white;
         }
 
@@ -155,7 +182,7 @@
         }
 
         .btn-refresh:hover {
-            background-color: #333333; /* Dunkleres Grau beim Hover */
+            background-color: #333333;
         }
 
         .btn-reset:hover {
@@ -194,6 +221,52 @@
             background-color: #e5e5e5;
         }
 
+        /* Defaults Dashboard Styles */
+        .category-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .category-item {
+            padding: 1rem;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .category-count {
+            background-color: #444444;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .category-defaults {
+            margin-top: 0.5rem;
+            padding-left: 1rem;
+        }
+
+        .default-entry {
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px dashed #ddd;
+        }
+
+        .no-entries {
+            font-style: italic;
+            color: #666;
+        }
+
         @media (max-width: 768px) {
             .stats-container {
                 flex-direction: column;
@@ -217,43 +290,79 @@
         </div>
         
         <div id="admin-dashboard" class="admin-dashboard hidden">
-            <h2>Cookie-Statistiken</h2>
+            <div class="dashboard-tabs">
+                <button id="cookies-tab" class="tab-btn active">Cookie-Statistiken</button>
+                <button id="defaults-tab" class="tab-btn">Default-Statistiken</button>
+            </div>
             
-            <div class="stats-container">
-                <div class="chart-container">
-                    <canvas id="cookie-chart"></canvas>
+            <!-- Cookie Dashboard -->
+            <div id="cookie-dashboard" class="dashboard-content">
+                <h2>Cookie-Statistiken</h2>
+                
+                <div class="stats-container">
+                    <div class="chart-container">
+                        <canvas id="cookie-chart"></canvas>
+                    </div>
+                    
+                    <div class="stats-summary">
+                        <div class="stat-item">
+                            <span class="stat-label">Akzeptiert:</span>
+                            <span id="accept-count" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Abgelehnt:</span>
+                            <span id="reject-count" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Gesamt:</span>
+                            <span id="total-count" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Akzeptanzrate:</span>
+                            <span id="accept-rate" class="stat-value">0%</span>
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="stats-summary">
-                    <div class="stat-item">
-                        <span class="stat-label">Akzeptiert:</span>
-                        <span id="accept-count" class="stat-value">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Abgelehnt:</span>
-                        <span id="reject-count" class="stat-value">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Gesamt:</span>
-                        <span id="total-count" class="stat-value">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Akzeptanzrate:</span>
-                        <span id="accept-rate" class="stat-value">0%</span>
+                <div class="admin-controls">
+                    <button id="refresh-cookies-btn" class="btn-refresh">Daten aktualisieren</button>
+                    <button id="reset-cookies-btn" class="btn-reset">Alle Daten zurücksetzen</button>
+                </div>
+                
+                <div id="reset-cookies-confirm" class="reset-confirm hidden">
+                    <p>Sind Sie sicher, dass Sie alle Cookie-Daten zurücksetzen möchten? Diese Aktion kann nicht rückgängig gemacht werden.</p>
+                    <div class="reset-buttons">
+                        <button id="confirm-reset-cookies" class="btn-danger">Ja, zurücksetzen</button>
+                        <button id="cancel-reset-cookies" class="btn-cancel">Abbrechen</button>
                     </div>
                 </div>
             </div>
             
-            <div class="admin-controls">
-                <button id="refresh-btn" class="btn-refresh">Daten aktualisieren</button>
-                <button id="reset-btn" class="btn-reset">Alle Daten zurücksetzen</button>
-            </div>
-            
-            <div id="reset-confirm" class="reset-confirm hidden">
-                <p>Sind Sie sicher, dass Sie alle Daten zurücksetzen möchten? Diese Aktion kann nicht rückgängig gemacht werden.</p>
-                <div class="reset-buttons">
-                    <button id="confirm-reset" class="btn-danger">Ja, zurücksetzen</button>
-                    <button id="cancel-reset" class="btn-cancel">Abbrechen</button>
+            <!-- Defaults Dashboard -->
+            <div id="defaults-dashboard" class="dashboard-content hidden">
+                <h2>Default-Statistiken</h2>
+                
+                <div class="stats-container">
+                    <div class="chart-container">
+                        <canvas id="defaults-chart"></canvas>
+                    </div>
+                </div>
+                
+                <div id="category-list" class="category-list">
+                    <!-- Kategorien werden hier dynamisch eingefügt -->
+                </div>
+                
+                <div class="admin-controls">
+                    <button id="refresh-defaults-btn" class="btn-refresh">Daten aktualisieren</button>
+                    <button id="reset-defaults-btn" class="btn-reset">Alle Daten zurücksetzen</button>
+                </div>
+                
+                <div id="reset-defaults-confirm" class="reset-confirm hidden">
+                    <p>Sind Sie sicher, dass Sie alle Default-Daten zurücksetzen möchten? Diese Aktion kann nicht rückgängig gemacht werden.</p>
+                    <div class="reset-buttons">
+                        <button id="confirm-reset-defaults" class="btn-danger">Ja, zurücksetzen</button>
+                        <button id="cancel-reset-defaults" class="btn-cancel">Abbrechen</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -267,6 +376,30 @@
             // Konstanten und Variablen
             const correctPassword = "Umfrage";
             let cookieChart = null;
+            let defaultsChart = null;
+            
+            // Kategorie-Farben für das Default-Diagramm
+            const categoryColors = {
+                'gesund': 'rgba(75, 192, 192, 0.8)',
+                'ungesund': 'rgba(255, 99, 132, 0.8)',
+                'spart Geld': 'rgba(54, 162, 235, 0.8)',
+                'kostet Geld': 'rgba(255, 159, 64, 0.8)',
+                'schützt Privatsphäre': 'rgba(153, 102, 255, 0.8)',
+                'verletzt Privatsphäre': 'rgba(255, 205, 86, 0.8)',
+                'fördert Nachhaltigkeit': 'rgba(75, 192, 75, 0.8)',
+                'ist umweltschädlich': 'rgba(201, 203, 207, 0.8)'
+            };
+            
+            const categoryBorderColors = {
+                'gesund': 'rgba(75, 192, 192, 1)',
+                'ungesund': 'rgba(255, 99, 132, 1)',
+                'spart Geld': 'rgba(54, 162, 235, 1)',
+                'kostet Geld': 'rgba(255, 159, 64, 1)',
+                'schützt Privatsphäre': 'rgba(153, 102, 255, 1)',
+                'verletzt Privatsphäre': 'rgba(255, 205, 86, 1)',
+                'fördert Nachhaltigkeit': 'rgba(75, 192, 75, 1)',
+                'ist umweltschädlich': 'rgba(201, 203, 207, 1)'
+            };
             
             // DOM-Elemente
             const loginBtn = document.getElementById("login-btn");
@@ -274,11 +407,27 @@
             const loginError = document.getElementById("login-error");
             const loginContainer = document.getElementById("login-container");
             const adminDashboard = document.getElementById("admin-dashboard");
-            const refreshBtn = document.getElementById("refresh-btn");
-            const resetBtn = document.getElementById("reset-btn");
-            const resetConfirm = document.getElementById("reset-confirm");
-            const confirmResetBtn = document.getElementById("confirm-reset");
-            const cancelResetBtn = document.getElementById("cancel-reset");
+            
+            // Tab-Elemente
+            const cookiesTab = document.getElementById("cookies-tab");
+            const defaultsTab = document.getElementById("defaults-tab");
+            const cookieDashboard = document.getElementById("cookie-dashboard");
+            const defaultsDashboard = document.getElementById("defaults-dashboard");
+            
+            // Cookie Dashboard Elemente
+            const refreshCookiesBtn = document.getElementById("refresh-cookies-btn");
+            const resetCookiesBtn = document.getElementById("reset-cookies-btn");
+            const resetCookiesConfirm = document.getElementById("reset-cookies-confirm");
+            const confirmResetCookies = document.getElementById("confirm-reset-cookies");
+            const cancelResetCookies = document.getElementById("cancel-reset-cookies");
+            
+            // Defaults Dashboard Elemente
+            const refreshDefaultsBtn = document.getElementById("refresh-defaults-btn");
+            const resetDefaultsBtn = document.getElementById("reset-defaults-btn");
+            const resetDefaultsConfirm = document.getElementById("reset-defaults-confirm");
+            const confirmResetDefaults = document.getElementById("confirm-reset-defaults");
+            const cancelResetDefaults = document.getElementById("cancel-reset-defaults");
+            const categoryList = document.getElementById("category-list");
             
             // Login-Funktion
             function login() {
@@ -289,10 +438,16 @@
                     console.log("Passwort korrekt"); // Debug-Meldung
                     loginContainer.style.display = "none";
                     adminDashboard.classList.remove("hidden");
-                    loadData();
+                    loadCookieData();
                     
-                    // Automatische Aktualisierung
-                    setInterval(loadData, 5000);
+                    // Automatische Aktualisierung für beide Dashboards
+                    setInterval(function() {
+                        if (!cookieDashboard.classList.contains("hidden")) {
+                            loadCookieData();
+                        } else {
+                            loadDefaultsData();
+                        }
+                    }, 5000);
                 } else {
                     console.log("Passwort falsch"); // Debug-Meldung
                     loginError.classList.remove("hidden");
@@ -313,15 +468,71 @@
                 }
             });
             
+            // Tab-Wechsel
+            cookiesTab.addEventListener("click", function() {
+                cookiesTab.classList.add("active");
+                defaultsTab.classList.remove("active");
+                cookieDashboard.classList.remove("hidden");
+                defaultsDashboard.classList.add("hidden");
+                loadCookieData();
+            });
+            
+            defaultsTab.addEventListener("click", function() {
+                defaultsTab.classList.add("active");
+                cookiesTab.classList.remove("active");
+                defaultsDashboard.classList.remove("hidden");
+                cookieDashboard.classList.add("hidden");
+                loadDefaultsData();
+            });
+            
+            // Event-Listener für Cookie-Dashboard
+            refreshCookiesBtn.addEventListener("click", function() {
+                loadCookieData();
+            });
+            
+            resetCookiesBtn.addEventListener("click", function() {
+                resetCookiesConfirm.classList.remove("hidden");
+            });
+            
+            cancelResetCookies.addEventListener("click", function() {
+                resetCookiesConfirm.classList.add("hidden");
+            });
+            
+            confirmResetCookies.addEventListener("click", function() {
+                localStorage.removeItem('cookieChoices');
+                localStorage.removeItem('surveyAnswers');
+                resetCookiesConfirm.classList.add("hidden");
+                loadCookieData();
+            });
+            
+            // Event-Listener für Defaults-Dashboard
+            refreshDefaultsBtn.addEventListener("click", function() {
+                loadDefaultsData();
+            });
+            
+            resetDefaultsBtn.addEventListener("click", function() {
+                resetDefaultsConfirm.classList.remove("hidden");
+            });
+            
+            cancelResetDefaults.addEventListener("click", function() {
+                resetDefaultsConfirm.classList.add("hidden");
+            });
+            
+            confirmResetDefaults.addEventListener("click", function() {
+                localStorage.removeItem('userDefaults');
+                resetDefaultsConfirm.classList.add("hidden");
+                loadDefaultsData();
+            });
+            
             // Helper-Funktion für localStorage
             function getStoredData(key, defaultValue = []) {
                 const data = localStorage.getItem(key);
                 return data ? JSON.parse(data) : defaultValue;
             }
             
-            // Diagramm initialisieren
-            function initChart(acceptCount, rejectCount) {
-                console.log("Chart wird initialisiert"); // Debug-Meldung
+            // Cookie-Diagramm initialisieren
+            function initCookieChart(acceptCount, rejectCount) {
+                console.log("Cookie-Chart wird initialisiert"); // Debug-Meldung
                 const ctx = document.getElementById('cookie-chart').getContext('2d');
                 
                 // Zerstöre vorhandenes Diagramm
@@ -370,9 +581,9 @@
                 });
             }
             
-            // Daten laden
-            function loadData() {
-                console.log("Daten werden geladen"); // Debug-Meldung
+            // Cookie-Daten laden
+            function loadCookieData() {
+                console.log("Cookie-Daten werden geladen"); // Debug-Meldung
                 const cookieChoices = getStoredData('cookieChoices', []);
                 
                 // Zähle Akzeptiert und Abgelehnt
@@ -380,10 +591,10 @@
                 const rejectCount = cookieChoices.filter(choice => choice.choice === 'reject').length;
                 const totalCount = acceptCount + rejectCount;
                 
-                console.log(`Daten geladen: ${acceptCount} akzeptiert, ${rejectCount} abgelehnt`); // Debug-Meldung
+                console.log(`Cookie-Daten geladen: ${acceptCount} akzeptiert, ${rejectCount} abgelehnt`); // Debug-Meldung
                 
                 // Aktualisiere Diagramm
-                initChart(acceptCount, rejectCount);
+                initCookieChart(acceptCount, rejectCount);
                 
                 // Aktualisiere Statistik-Zusammenfassung
                 document.getElementById("accept-count").textContent = acceptCount;
@@ -396,34 +607,116 @@
                 document.getElementById("accept-rate").textContent = acceptRate + "%";
             }
             
-            // Event-Listener für Aktualisieren-Button
-            refreshBtn.addEventListener("click", function() {
-                console.log("Aktualisieren-Button geklickt"); // Debug-Meldung
-                loadData();
-            });
-            
-            // Event-Listener für Zurücksetzen-Button
-            resetBtn.addEventListener("click", function() {
-                console.log("Zurücksetzen-Button geklickt"); // Debug-Meldung
-                resetConfirm.classList.remove("hidden");
-            });
-            
-            // Event-Listener für Abbrechen-Button beim Zurücksetzen
-            cancelResetBtn.addEventListener("click", function() {
-                console.log("Abbrechen-Button geklickt"); // Debug-Meldung
-                resetConfirm.classList.add("hidden");
-            });
-            
-            // Event-Listener für Bestätigen-Button beim Zurücksetzen
-            confirmResetBtn.addEventListener("click", function() {
-                console.log("Bestätigen-Button geklickt"); // Debug-Meldung
-                // Lösche localStorage-Daten
-                localStorage.removeItem('cookieChoices');
-                localStorage.removeItem('surveyAnswers');
+            // Defaults-Diagramm initialisieren
+            function initDefaultsChart(categoryData) {
+                console.log("Defaults-Chart wird initialisiert"); // Debug-Meldung
+                const ctx = document.getElementById('defaults-chart').getContext('2d');
                 
-                resetConfirm.classList.add("hidden");
-                loadData(); // Aktualisiere die Daten
-            });
+                // Zerstöre vorhandenes Diagramm
+                if (defaultsChart !== null) {
+                    defaultsChart.destroy();
+                }
+                
+                // Sortiere Kategorien nach Häufigkeit absteigend
+                const sortedData = [...categoryData].sort((a, b) => b.count - a.count);
+                
+                defaultsChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: sortedData.map(item => item.category),
+                        datasets: [{
+                            label: 'Anzahl der Defaults',
+                            data: sortedData.map(item => item.count),
+                            backgroundColor: sortedData.map(item => categoryColors[item.category]),
+                            borderColor: sortedData.map(item => categoryBorderColors[item.category]),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        animation: { duration: 0 }, // Deaktiviere Animationen
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                }
+                            }
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Default-Kategorien der Teilnehmer',
+                                font: {
+                                    size: 16
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Defaults-Daten laden und anzeigen
+            function loadDefaultsData() {
+                console.log("Defaults-Daten werden geladen"); // Debug-Meldung
+                const userDefaults = getStoredData('userDefaults', []);
+                
+                // Zähle Defaults pro Kategorie
+                const categories = ['gesund', 'ungesund', 'spart Geld', 'kostet Geld', 
+                                    'schützt Privatsphäre', 'verletzt Privatsphäre', 
+                                    'fördert Nachhaltigkeit', 'ist umweltschädlich'];
+                                    
+                const categoryData = categories.map(category => {
+                    const defaultsInCategory = userDefaults.filter(d => d.category === category);
+                    return {
+                        category: category,
+                        count: defaultsInCategory.length,
+                        defaults: defaultsInCategory
+                    };
+                });
+                
+                // Aktualisiere Diagramm
+                initDefaultsChart(categoryData);
+                
+                // Aktualisiere Kategorie-Liste
+                updateCategoryList(categoryData);
+            }
+            
+            // Kategorie-Liste aktualisieren
+            function updateCategoryList(categoryData) {
+                // Sortiere Kategorien nach Häufigkeit absteigend
+                const sortedData = [...categoryData].sort((a, b) => b.count - a.count);
+                
+                let listHTML = '';
+                
+                sortedData.forEach(item => {
+                    const backgroundColor = categoryColors[item.category];
+                    const borderColor = categoryBorderColors[item.category];
+                    
+                    listHTML += `
+                        <div class="category-item" style="border-left: 4px solid ${borderColor}">
+                            <div class="category-header">
+                                <span>${item.category}</span>
+                                <span class="category-count" style="background-color: ${borderColor}">${item.count}</span>
+                            </div>
+                            <div class="category-defaults">
+                    `;
+                    
+                    if (item.defaults.length > 0) {
+                        item.defaults.forEach(defaultItem => {
+                            listHTML += `<div class="default-entry">${defaultItem.text}</div>`;
+                        });
+                    } else {
+                        listHTML += `<div class="no-entries">Keine Einträge in dieser Kategorie</div>`;
+                    }
+                    
+                    listHTML += `
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                categoryList.innerHTML = listHTML;
+            }
         });
     </script>
 </body>

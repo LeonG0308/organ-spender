@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organspende-Präferenz - Defaults</title>
+    <style>
+        /* Global Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            background-color: #444444;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .main-content {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        h1, h2, h3 {
+            margin-bottom: 1rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        /* Defaults Page Styles */
+        .defaults-container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .defaults-description {
+            margin-bottom: 2rem;
+        }
+
+        .add-default-btn {
+            background-color: #555555;
+            color: white;
+            margin-bottom: 2rem;
+        }
+
+        .add-default-btn:hover {
+            background-color: #333333;
+        }
+
+        .default-input-container {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+
+        .default-input-container textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            min-height: 100px;
+            margin-bottom: 1rem;
+        }
+
+        .default-input-container button {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .default-input-container button:hover {
+            background-color: #45a049;
+        }
+
+        .defaults-list {
+            margin-top: 2rem;
+        }
+
+        .default-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 0.5rem;
+        }
+
+        .default-text {
+            flex: 1;
+            margin-right: 1rem;
+        }
+
+        .category-select {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            background-color: white;
+        }
+
+        .no-defaults {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <h1>Organspende-Präferenz - Defaults</h1>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="defaults-container">
+            <h2>Defaults im Alltag</h2>
+            
+            <div class="defaults-description">
+                <p>In unserem Alltag beeinflussen viele Standardeinstellungen (Defaults) unsere Entscheidungen - oft ohne dass wir es bewusst wahrnehmen. Bitte teilen Sie Beispiele für solche Defaults aus Ihrem Leben und ordnen Sie diese einer Kategorie zu.</p>
+            </div>
+            
+            <button id="add-default-btn" class="add-default-btn">Default hinzufügen</button>
+            
+            <div id="default-input" class="default-input-container hidden">
+                <h3>Neuen Default hinzufügen</h3>
+                <p>Beschreiben Sie eine Alltagssituation, in der eine Standardeinstellung Ihre Entscheidung beeinflusst hat:</p>
+                <textarea id="default-text" placeholder="Beispiel: Bei meinen Smartphone-Einstellungen ist die automatische Datensicherung standardmäßig aktiviert..."></textarea>
+                <button id="save-default-btn">Speichern</button>
+            </div>
+            
+            <div id="defaults-list" class="defaults-list">
+                <!-- Default-Einträge werden hier dynamisch eingefügt -->
+                <p id="no-defaults" class="no-defaults">Noch keine Defaults hinzugefügt. Klicken Sie auf "Default hinzufügen", um loszulegen.</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM-Elemente
+            const addDefaultBtn = document.getElementById('add-default-btn');
+            const defaultInput = document.getElementById('default-input');
+            const defaultText = document.getElementById('default-text');
+            const saveDefaultBtn = document.getElementById('save-default-btn');
+            const defaultsList = document.getElementById('defaults-list');
+            const noDefaults = document.getElementById('no-defaults');
+            
+            // Kategorien für das Dropdown-Menü
+            const categories = [
+                'Bitte auswählen',
+                'gesund',
+                'ungesund',
+                'spart Geld',
+                'kostet Geld',
+                'schützt Privatsphäre',
+                'verletzt Privatsphäre',
+                'fördert Nachhaltigkeit',
+                'ist umweltschädlich'
+            ];
+            
+            // Event Listener für "Default hinzufügen" Button
+            addDefaultBtn.addEventListener('click', function() {
+                defaultInput.classList.remove('hidden');
+                defaultText.focus();
+            });
+            
+            // Event Listener für "Speichern" Button
+            saveDefaultBtn.addEventListener('click', function() {
+                const text = defaultText.value.trim();
+                
+                if (text) {
+                    // Default speichern
+                    saveDefault(text);
+                    
+                    // Formular zurücksetzen
+                    defaultText.value = '';
+                    defaultInput.classList.add('hidden');
+                    
+                    // Liste aktualisieren
+                    updateDefaultsList();
+                }
+            });
+            
+            // Funktion zum Speichern eines neuen Defaults
+            function saveDefault(text) {
+                const defaults = getStoredData('userDefaults', []);
+                
+                defaults.push({
+                    text: text,
+                    category: '',
+                    timestamp: new Date().toISOString()
+                });
+                
+                storeData('userDefaults', defaults);
+            }
+            
+            // Funktion zum Aktualisieren der Defaults-Liste
+            function updateDefaultsList() {
+                const defaults = getStoredData('userDefaults', []);
+                
+                // Zeige/verstecke "Keine Defaults" Nachricht
+                if (defaults.length > 0) {
+                    noDefaults.classList.add('hidden');
+                } else {
+                    noDefaults.classList.remove('hidden');
+                    defaultsList.innerHTML = '';
+                    return;
+                }
+                
+                // Liste leeren und neu aufbauen
+                let listHTML = '';
+                
+                defaults.forEach((defaultItem, index) => {
+                    listHTML += `
+                        <div class="default-item">
+                            <div class="default-text">${defaultItem.text}</div>
+                            <select class="category-select" data-index="${index}">
+                                ${categories.map((category, catIndex) => {
+                                    const selected = category === defaultItem.category ? 'selected' : '';
+                                    return `<option value="${catIndex === 0 ? '' : category}" ${selected}>${category}</option>`;
+                                }).join('')}
+                            </select>
+                        </div>
+                    `;
+                });
+                
+                defaultsList.innerHTML = listHTML;
+                
+                // Event Listener für Kategorie-Dropdown-Menüs
+                document.querySelectorAll('.category-select').forEach(select => {
+                    select.addEventListener('change', function() {
+                        const index = parseInt(this.getAttribute('data-index'));
+                        const category = this.value;
+                        
+                        // Kategorie aktualisieren
+                        updateDefaultCategory(index, category);
+                    });
+                });
+            }
+            
+            // Funktion zum Aktualisieren der Kategorie eines Defaults
+            function updateDefaultCategory(index, category) {
+                const defaults = getStoredData('userDefaults', []);
+                
+                if (defaults[index]) {
+                    defaults[index].category = category;
+                    storeData('userDefaults', defaults);
+                }
+            }
+            
+            // Helper Funktionen für localStorage
+            function getStoredData(key, defaultValue = []) {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : defaultValue;
+            }
+
+            function storeData(key, data) {
+                localStorage.setItem(key, JSON.stringify(data));
+            }
+            
+            // Initiale Anzeige der Liste
+            updateDefaultsList();
+        });
+    </script>
+</body>
+</html>
