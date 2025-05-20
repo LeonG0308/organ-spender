@@ -136,6 +136,7 @@
             flex: 1;
             min-width: 300px;
             height: 300px; /* Reduced height */
+            position: relative; /* Wichtig für Chart.js */
         }
 
         .stats-summary {
@@ -168,7 +169,8 @@
         .admin-controls {
             display: flex;
             gap: 1rem;
-            margin-top: 1rem;
+            margin-top: 2rem; /* Mehr Abstand nach oben */
+            margin-bottom: 1rem; /* Abstand nach unten */
         }
 
         .btn-refresh {
@@ -239,6 +241,7 @@
             flex: 1;
             min-width: 600px;
             height: 400px;
+            position: relative; /* Wichtig für Chart.js */
         }
 
         .category-container {
@@ -256,6 +259,7 @@
             justify-content: space-between;
             margin-top: 0.5rem;
             padding: 0 1rem;
+            text-align: center; /* Für bessere Zentrierung */
         }
         
         .chart-label {
@@ -270,7 +274,6 @@
         }
 
         .category-header {
-            background-color: #99E1E5; /* PowerPoint light blue */
             padding: 0.5rem;
             border-radius: 4px;
             display: flex;
@@ -361,6 +364,7 @@
                     </div>
                 </div>
                 
+                <!-- Buttons nun außerhalb der Chart-Container -->
                 <div class="admin-controls">
                     <button id="refresh-cookies-btn" class="btn-refresh">Daten aktualisieren</button>
                     <button id="reset-cookies-btn" class="btn-reset">Alle Daten zurücksetzen</button>
@@ -542,8 +546,15 @@
             });
             
             confirmResetCookies.addEventListener("click", function() {
+                // Lösche aus beiden Speicherformen
                 localStorage.removeItem('cookieChoices');
+                sessionStorage.removeItem('cookieChoices');
                 localStorage.removeItem('surveyAnswers');
+                sessionStorage.removeItem('surveyAnswers');
+                
+                // Lösche auch den Cookie
+                document.cookie = "cookieChoice=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                
                 resetCookiesConfirm.classList.add("hidden");
                 loadCookieData();
             });
@@ -562,15 +573,29 @@
             });
             
             confirmResetDefaults.addEventListener("click", function() {
+                // Lösche aus beiden Speicherformen
                 localStorage.removeItem('userDefaults');
+                sessionStorage.removeItem('userDefaults');
+                
                 resetDefaultsConfirm.classList.add("hidden");
                 loadDefaultsData();
             });
             
-            // Helper-Funktion für localStorage
-            function getStoredData(key, defaultValue = []) {
-                const data = localStorage.getItem(key);
-                return data ? JSON.parse(data) : defaultValue;
+            // Helper-Funktion für localStorage und sessionStorage
+            function getStoredData(key, defaultValue = [], storageType = 'both') {
+                let data;
+                
+                if (storageType === 'session' || storageType === 'both') {
+                    data = sessionStorage.getItem(key);
+                    if (data) return JSON.parse(data);
+                }
+                
+                if (storageType === 'local' || storageType === 'both') {
+                    data = localStorage.getItem(key);
+                    if (data) return JSON.parse(data);
+                }
+                
+                return defaultValue;
             }
             
             // Cookie-Diagramm initialisieren
@@ -591,12 +616,12 @@
                             label: 'Anzahl der Teilnehmer',
                             data: [acceptCount, rejectCount],
                             backgroundColor: [
-                                'rgba(98, 71, 170, 0.8)', // PowerPoint purple
-                                'rgba(153, 225, 229, 0.8)' // PowerPoint light blue
+                                'rgba(76, 175, 80, 0.8)', // Green
+                                'rgba(244, 67, 54, 0.8)' // Red
                             ],
                             borderColor: [
-                                'rgba(98, 71, 170, 1)', // PowerPoint purple
-                                'rgba(153, 225, 229, 1)' // PowerPoint light blue
+                                'rgba(76, 175, 80, 1)', // Green
+                                'rgba(244, 67, 54, 1)' // Red
                             ],
                             borderWidth: 1
                         }]
@@ -619,7 +644,8 @@
                                     size: 16
                                 }
                             }
-                        }
+                        },
+                        maintainAspectRatio: false // Wichtig, damit Chart sich an Container anpasst
                     }
                 });
             }
@@ -627,7 +653,12 @@
             // Cookie-Daten laden
             function loadCookieData() {
                 console.log("Cookie-Daten werden geladen"); // Debug-Meldung
-                const cookieChoices = getStoredData('cookieChoices', []);
+                
+                // Versuche zuerst die Daten aus dem Cookie zu lesen
+                const cookieValue = document.cookie.split(';').find(cookie => cookie.trim().startsWith('cookieChoice='));
+                
+                // Dann aus localStorage und sessionStorage
+                const cookieChoices = getStoredData('cookieChoices', [], 'both');
                 
                 // Zähle Akzeptiert und Abgelehnt
                 const acceptCount = cookieChoices.filter(choice => choice.choice === 'accept').length;
@@ -683,6 +714,11 @@
                                 ticks: {
                                     precision: 0
                                 }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
                             }
                         },
                         plugins: {
@@ -696,7 +732,8 @@
                             legend: {
                                 display: false
                             }
-                        }
+                        },
+                        maintainAspectRatio: false // Wichtig, damit Chart sich an Container anpasst
                     }
                 });
                 
@@ -718,7 +755,9 @@
             // Defaults-Daten laden und anzeigen
             function loadDefaultsData() {
                 console.log("Defaults-Daten werden geladen"); // Debug-Meldung
-                const userDefaults = getStoredData('userDefaults', []);
+                
+                // Versuche Daten aus beiden Speicherformen zu laden
+                const userDefaults = getStoredData('userDefaults', [], 'both');
                 
                 // Zähle Defaults pro Kategorie
                 const categories = ['gesund', 'ungesund', 'spart Geld', 'kostet Geld', 
@@ -750,9 +789,10 @@
                 
                 sortedData.forEach(item => {
                     if (item.count > 0) { // Zeige nur Kategorien mit mindestens einem Eintrag
+                        // Setze Kategorie-Header-Farbe auf die gleiche Farbe wie im Diagramm
                         displayHTML += `
                             <div class="category-entries">
-                                <div class="category-header">
+                                <div class="category-header" style="background-color: ${categoryColors[item.category]}">
                                     <span class="category-title">${item.category}</span>
                                     <span class="category-count">${item.count}</span>
                                 </div>

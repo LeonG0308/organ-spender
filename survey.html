@@ -87,36 +87,32 @@
 
         .answer-options {
             display: flex;
+            flex-direction: column;
             gap: 1rem;
             margin-bottom: 2rem;
         }
 
-        .btn-yes, .btn-no {
-            flex: 1;
-            font-size: 1.1rem;
-            padding: 1rem;
+        .radio-option {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
         }
 
-        .btn-yes {
-            background-color: #6247AA; /* PowerPoint purple */
+        .radio-option input[type="radio"] {
+            margin-right: 0.5rem;
+            cursor: pointer;
+        }
+
+        .radio-yes {
+            background-color: #4CAF50; /* Green */
             color: white;
         }
 
-        .btn-no {
-            background-color: #99E1E5; /* PowerPoint light blue */
-            color: #333;
-        }
-
-        .btn-yes:hover {
-            background-color: #513c8c; /* Darker purple */
-        }
-
-        .btn-no:hover {
-            background-color: #7cc8cc; /* Darker light blue */
-        }
-
-        .btn-yes.selected, .btn-no.selected {
-            box-shadow: 0 0 0 3px #444444; /* Angepasst an den grauen Header */
+        .radio-no {
+            background-color: #f44336; /* Red */
+            color: white;
         }
 
         .survey-submit {
@@ -165,12 +161,18 @@
                 <h3>Würden Sie im Falle Ihres Todes Ihre Organe spenden?</h3>
                 
                 <div class="answer-options">
-                    <button id="answer-yes" class="btn-yes">Ja</button>
-                    <button id="answer-no" class="btn-no">Nein</button>
+                    <label class="radio-option radio-yes">
+                        <input type="radio" id="answer-yes" name="organ-donation" value="yes" checked>
+                        Ja
+                    </label>
+                    <label class="radio-option radio-no">
+                        <input type="radio" id="answer-no" name="organ-donation" value="no">
+                        Nein
+                    </label>
                 </div>
                 
                 <div class="survey-submit">
-                    <button id="submit-survey" class="btn-submit" disabled>Absenden</button>
+                    <button id="submit-survey" class="btn-submit">Absenden</button>
                 </div>
             </div>
             
@@ -183,49 +185,54 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            let selectedAnswer = null;
-            
-            // Handle answer selection
-            document.querySelectorAll("#answer-yes, #answer-no").forEach(button => {
-                button.addEventListener("click", function() {
-                    selectedAnswer = this.id === "answer-yes" ? "yes" : "no";
-                    
-                    // Highlight selected button
-                    document.querySelectorAll(".btn-yes, .btn-no").forEach(btn => {
-                        btn.classList.remove("selected");
-                    });
-                    this.classList.add("selected");
-                    
-                    // Enable submit button
-                    document.getElementById("submit-survey").disabled = false;
-                });
-            });
+            // Da die Radio-Buttons bereits einen Default-Wert haben (Yes ist vorausgewählt),
+            // können wir den Submit-Button direkt aktivieren
+            document.getElementById("submit-survey").disabled = false;
             
             // Handle survey submission
             document.getElementById("submit-survey").addEventListener("click", function() {
-                if (selectedAnswer) {
-                    // Record the answer
+                // Bestimme, welche Radio-Option ausgewählt ist
+                const selectedAnswer = document.querySelector('input[name="organ-donation"]:checked').value;
+                
+                // Record the answer - erst versuchen mit sessionStorage, dann mit localStorage
+                try {
+                    // Versuche, die Antwort in sessionStorage zu speichern (für geräteübergreifendes Tracking)
+                    const surveyAnswers = getStoredData('surveyAnswers', [], 'session');
+                    surveyAnswers.push({
+                        answer: selectedAnswer,
+                        timestamp: new Date().toISOString()
+                    });
+                    storeData('surveyAnswers', surveyAnswers, 'session');
+                } catch (e) {
+                    // Fallback auf localStorage
                     const surveyAnswers = getStoredData('surveyAnswers', []);
                     surveyAnswers.push({
                         answer: selectedAnswer,
                         timestamp: new Date().toISOString()
                     });
                     storeData('surveyAnswers', surveyAnswers);
-                    
-                    // Show thank you message
-                    document.querySelector(".survey-question").style.display = "none";
-                    document.getElementById("thank-you").classList.remove("hidden");
                 }
+                
+                // Show thank you message
+                document.querySelector(".survey-question").style.display = "none";
+                document.getElementById("thank-you").classList.remove("hidden");
             });
             
-            // Helper Funktionen für localStorage
-            function getStoredData(key, defaultValue = []) {
-                const data = localStorage.getItem(key);
+            // Helper Funktionen für Storage
+            function getStoredData(key, defaultValue = [], storageType = 'local') {
+                const storage = storageType === 'session' ? sessionStorage : localStorage;
+                const data = storage.getItem(key);
                 return data ? JSON.parse(data) : defaultValue;
             }
 
-            function storeData(key, data) {
-                localStorage.setItem(key, JSON.stringify(data));
+            function storeData(key, data, storageType = 'local') {
+                const storage = storageType === 'session' ? sessionStorage : localStorage;
+                storage.setItem(key, JSON.stringify(data));
+                
+                // Wenn wir in sessionStorage speichern, auch in localStorage speichern für Persistenz
+                if (storageType === 'session') {
+                    localStorage.setItem(key, JSON.stringify(data));
+                }
             }
         });
     </script>

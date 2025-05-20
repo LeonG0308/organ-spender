@@ -241,20 +241,35 @@
             
             // Funktion zum Speichern eines neuen Defaults
             function saveDefault(text) {
-                const defaults = getStoredData('userDefaults', []);
-                
-                defaults.push({
-                    text: text,
-                    category: '',
-                    timestamp: new Date().toISOString()
-                });
-                
-                storeData('userDefaults', defaults);
+                // Versuche erst in sessionStorage, dann in localStorage
+                try {
+                    const defaults = getStoredData('userDefaults', [], 'session');
+                    
+                    defaults.push({
+                        text: text,
+                        category: '',
+                        timestamp: new Date().toISOString()
+                    });
+                    
+                    storeData('userDefaults', defaults, 'session');
+                } catch (e) {
+                    // Fallback auf localStorage
+                    const defaults = getStoredData('userDefaults', []);
+                    
+                    defaults.push({
+                        text: text,
+                        category: '',
+                        timestamp: new Date().toISOString()
+                    });
+                    
+                    storeData('userDefaults', defaults);
+                }
             }
             
             // Funktion zum Aktualisieren der Defaults-Liste
             function updateDefaultsList() {
-                const defaults = getStoredData('userDefaults', []);
+                // Versuche Daten aus beiden Speicherformen zu laden
+                const defaults = getStoredData('userDefaults', [], 'both');
                 
                 // Zeige/verstecke "Keine Defaults" Nachricht
                 if (defaults.length > 0) {
@@ -298,22 +313,59 @@
             
             // Funktion zum Aktualisieren der Kategorie eines Defaults
             function updateDefaultCategory(index, category) {
-                const defaults = getStoredData('userDefaults', []);
-                
-                if (defaults[index]) {
-                    defaults[index].category = category;
-                    storeData('userDefaults', defaults);
+                // Versuche erst in sessionStorage, dann in localStorage
+                try {
+                    const defaults = getStoredData('userDefaults', [], 'session');
+                    
+                    if (defaults[index]) {
+                        defaults[index].category = category;
+                        storeData('userDefaults', defaults, 'session');
+                    }
+                } catch (e) {
+                    // Fallback auf localStorage
+                    const defaults = getStoredData('userDefaults', []);
+                    
+                    if (defaults[index]) {
+                        defaults[index].category = category;
+                        storeData('userDefaults', defaults);
+                    }
                 }
             }
             
-            // Helper Funktionen für localStorage
-            function getStoredData(key, defaultValue = []) {
-                const data = localStorage.getItem(key);
-                return data ? JSON.parse(data) : defaultValue;
+            // Helper Funktionen für Storage
+            function getStoredData(key, defaultValue = [], storageType = 'local') {
+                let data;
+                
+                if (storageType === 'session' || storageType === 'both') {
+                    data = sessionStorage.getItem(key);
+                    if (data) return JSON.parse(data);
+                }
+                
+                if (storageType === 'local' || storageType === 'both') {
+                    data = localStorage.getItem(key);
+                    if (data) return JSON.parse(data);
+                }
+                
+                return defaultValue;
             }
 
-            function storeData(key, data) {
-                localStorage.setItem(key, JSON.stringify(data));
+            function storeData(key, data, storageType = 'local') {
+                const storage = storageType === 'session' ? sessionStorage : localStorage;
+                storage.setItem(key, JSON.stringify(data));
+                
+                // Wenn in sessionStorage gespeichert wird, auch in localStorage speichern
+                if (storageType === 'session') {
+                    localStorage.setItem(key, JSON.stringify(data));
+                }
+                
+                // Synchronisiere beide Speicherformen
+                if (storageType === 'local') {
+                    try {
+                        sessionStorage.setItem(key, JSON.stringify(data));
+                    } catch (e) {
+                        console.log("Konnte nicht in sessionStorage speichern:", e);
+                    }
+                }
             }
             
             // Initiale Anzeige der Liste

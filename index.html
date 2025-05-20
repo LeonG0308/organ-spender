@@ -81,98 +81,38 @@
 
         .cookie-options {
             display: flex;
-            flex-direction: column;
             gap: 1rem;
             margin-top: 1.5rem;
         }
 
-        .primary-buttons {
-            display: flex;
-            gap: 1rem;
-        }
-
         .btn-accept {
-            background-color: #6247AA; /* PowerPoint purple */
+            background-color: #4CAF50; /* Green */
             color: white;
             font-weight: bold;
             font-size: 1.1rem;
             padding: 1rem 2rem;
-            flex: 3; /* Größer als der Ablehnen-Button */
+            flex: 3;
         }
 
         .btn-accept:hover {
-            background-color: #513c8c; /* Darker purple */
+            background-color: #45a049; /* Darker green */
         }
 
         .btn-reject {
-            background-color: #99E1E5; /* PowerPoint light blue */
-            color: #333;
+            background-color: #f44336; /* Red */
+            color: white;
             font-size: 0.95rem;
             padding: 0.75rem 1rem;
             flex: 1;
         }
 
         .btn-reject:hover {
-            background-color: #7cc8cc; /* Darker light blue */
-        }
-
-        .secondary-options {
-            display: flex;
-            justify-content: center;
-        }
-
-        .btn-customize {
-            background-color: transparent;
-            color: #666;
-            border: none;
-            padding: 0.5rem;
-            font-size: 0.9rem;
-            text-decoration: underline;
-        }
-
-        .btn-customize:hover {
-            color: #333;
-            transform: none;
-        }
-
-        .cookie-customize {
-            margin-top: 1.5rem;
-            border-top: 1px solid #eee;
-            padding-top: 1.5rem;
-        }
-
-        .cookie-type {
-            margin-bottom: 1.5rem;
-        }
-
-        .cookie-description {
-            font-size: 0.9rem;
-            color: #666;
-            margin-left: 1.7rem;
-        }
-
-        .cookie-customize-buttons {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 1.5rem;
-        }
-
-        .btn-save {
-            background-color: #6247AA; /* PowerPoint purple */
-            color: white;
-        }
-
-        .btn-save:hover {
-            background-color: #513c8c; /* Darker purple */
+            background-color: #d32f2f; /* Darker red */
         }
 
         @media (max-width: 768px) {
-            .primary-buttons {
+            .cookie-options {
                 flex-direction: column;
-            }
-            
-            .btn-customize {
-                margin-top: 0.5rem;
             }
         }
     </style>
@@ -191,46 +131,8 @@
                 <p>Wir verwenden Cookies, um Ihnen die bestmögliche Erfahrung auf unserer Website zu bieten. Durch die Nutzung unserer Website stimmen Sie der Verwendung von Cookies gemäß unserer Datenschutzrichtlinie zu.</p>
                 
                 <div class="cookie-options">
-                    <div class="primary-buttons">
-                        <button id="accept-cookies" class="btn-accept">Cookies akzeptieren</button>
-                        <button id="reject-cookies" class="btn-reject">Ablehnen</button>
-                    </div>
-                    
-                    <div class="secondary-options">
-                        <button id="customize-cookies" class="btn-customize">Einstellungen anpassen</button>
-                    </div>
-                </div>
-                
-                <div id="cookie-customize" class="cookie-customize hidden">
-                    <h3>Cookie-Einstellungen anpassen</h3>
-                    
-                    <div class="cookie-type">
-                        <input type="checkbox" id="essential" checked disabled>
-                        <label for="essential">Notwendige Cookies (erforderlich)</label>
-                        <p class="cookie-description">Diese Cookies sind für die Grundfunktionen der Website erforderlich und können nicht deaktiviert werden.</p>
-                    </div>
-                    
-                    <div class="cookie-type">
-                        <input type="checkbox" id="functional">
-                        <label for="functional">Funktionale Cookies</label>
-                        <p class="cookie-description">Diese Cookies ermöglichen erweiterte Funktionen und Personalisierung.</p>
-                    </div>
-                    
-                    <div class="cookie-type">
-                        <input type="checkbox" id="analytics">
-                        <label for="analytics">Analyse-Cookies</label>
-                        <p class="cookie-description">Diese Cookies helfen uns, zu verstehen, wie Besucher mit unserer Website interagieren.</p>
-                    </div>
-                    
-                    <div class="cookie-type">
-                        <input type="checkbox" id="marketing">
-                        <label for="marketing">Marketing-Cookies</label>
-                        <p class="cookie-description">Diese Cookies werden verwendet, um relevante Werbung anzuzeigen.</p>
-                    </div>
-                    
-                    <div class="cookie-customize-buttons">
-                        <button id="save-preferences" class="btn-save">Einstellungen speichern</button>
-                    </div>
+                    <button id="accept-cookies" class="btn-accept">Cookies akzeptieren</button>
+                    <button id="reject-cookies" class="btn-reject">Ablehnen</button>
                 </div>
             </div>
         </div>
@@ -241,11 +143,6 @@
             // Show cookie banner immediately
             document.getElementById("cookie-banner").style.display = "block";
             
-            // Show customize options
-            document.getElementById("customize-cookies").addEventListener("click", function() {
-                document.getElementById("cookie-customize").classList.toggle("hidden");
-            });
-            
             // Accept all cookies
             document.getElementById("accept-cookies").addEventListener("click", function() {
                 recordCookieChoice("accept");
@@ -253,38 +150,52 @@
                 window.location.href = "survey.html";
             });
             
-            // Reject cookies (jetzt wieder als direkter Button)
+            // Reject cookies
             document.getElementById("reject-cookies").addEventListener("click", function() {
                 recordCookieChoice("reject");
                 document.getElementById("cookie-banner").style.display = "none";
                 window.location.href = "survey.html";
             });
             
-            // Save preferences (same as accept in this experiment)
-            document.getElementById("save-preferences").addEventListener("click", function() {
-                recordCookieChoice("accept");
-                document.getElementById("cookie-banner").style.display = "none";
-                window.location.href = "survey.html";
-            });
-            
-            // Function to record the choice in localStorage
+            // Function to record the choice in both sessionStorage and localStorage
             function recordCookieChoice(choice) {
-                const cookieChoices = getStoredData('cookieChoices', []);
-                cookieChoices.push({
-                    choice: choice,
-                    timestamp: new Date().toISOString()
-                });
-                storeData('cookieChoices', cookieChoices);
+                // Erst versuche sessionStorage für geräteübergreifendes Tracking
+                try {
+                    const cookieChoices = getStoredData('cookieChoices', [], 'session');
+                    cookieChoices.push({
+                        choice: choice,
+                        timestamp: new Date().toISOString()
+                    });
+                    storeData('cookieChoices', cookieChoices, 'session');
+                } catch (e) {
+                    // Fallback auf localStorage
+                    const cookieChoices = getStoredData('cookieChoices', []);
+                    cookieChoices.push({
+                        choice: choice,
+                        timestamp: new Date().toISOString()
+                    });
+                    storeData('cookieChoices', cookieChoices);
+                }
+                
+                // Setze auch einen Cookie
+                document.cookie = `cookieChoice=${choice};path=/;max-age=31536000`; // 1 Jahr gültig
             }
             
-            // Helper Funktionen für localStorage
-            function getStoredData(key, defaultValue = []) {
-                const data = localStorage.getItem(key);
+            // Helper Funktionen für Storage
+            function getStoredData(key, defaultValue = [], storageType = 'local') {
+                const storage = storageType === 'session' ? sessionStorage : localStorage;
+                const data = storage.getItem(key);
                 return data ? JSON.parse(data) : defaultValue;
             }
 
-            function storeData(key, data) {
-                localStorage.setItem(key, JSON.stringify(data));
+            function storeData(key, data, storageType = 'local') {
+                const storage = storageType === 'session' ? sessionStorage : localStorage;
+                storage.setItem(key, JSON.stringify(data));
+                
+                // Wenn wir in sessionStorage speichern, auch in localStorage speichern für Persistenz
+                if (storageType === 'session') {
+                    localStorage.setItem(key, JSON.stringify(data));
+                }
             }
         });
     </script>
