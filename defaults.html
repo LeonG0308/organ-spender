@@ -118,12 +118,12 @@
         }
 
         .default-input-container button {
-            background-color: #4CAF50; /* Ursprüngliches Grün */
+            background-color: #6247AA; /* PowerPoint purple */
             color: white;
         }
 
         .default-input-container button:hover {
-            background-color: #45a049; /* Dunkleres Grün */
+            background-color: #513c8c; /* Darker purple */
         }
 
         .defaults-list {
@@ -194,282 +194,131 @@
     </div>
     
     <script>
-        // Firebase Konfiguration
-        const firebaseConfig = {
-            apiKey: "AIzaSyCEVoOcAAN0K-r63wh_dIJ3cmOt3Hmkkbg",
-            authDomain: "nudging-experiment.firebaseapp.com",
-            projectId: "nudging-experiment",
-            storageBucket: "nudging-experiment.appspot.com",
-            messagingSenderId: "340323415578",
-            appId: "1:340323415578:web:e4fe9e0b93d2f18c6889ca",
-            databaseURL: "https://nudging-experiment-default-rtdb.europe-west1.firebasedatabase.app"
-        };
-
-        // Firebase initialisieren
-        function loadFirebase() {
-            if (typeof firebase === 'undefined') {
-                // Firebase noch nicht geladen, Script einfügen
-                const script = document.createElement('script');
-                script.src = 'https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js';
-                script.onload = function() {
-                    // Firebase Datenbank-Modul laden
-                    const dbScript = document.createElement('script');
-                    dbScript.src = 'https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js';
-                    dbScript.onload = function() {
-                        // Firebase initialisieren und App starten
-                        firebase.initializeApp(firebaseConfig);
-                        initApp();
-                    };
-                    document.head.appendChild(dbScript);
-                };
-                document.head.appendChild(script);
-            } else {
-                // Firebase bereits geladen
-                if (!firebase.apps.length) {
-                    firebase.initializeApp(firebaseConfig);
-                    initApp();
-                };
-                document.head.appendChild(dbScript);
-            };
-            document.head.appendChild(script);
-        } else {
-            // Firebase bereits geladen
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
-            }
-            initApp();
-        }
-    }
-
-    // App initialisieren
-    function initApp() {
-        // DOM-Elemente
-        const addDefaultBtn = document.getElementById('add-default-btn');
-        const defaultInput = document.getElementById('default-input');
-        const defaultText = document.getElementById('default-text');
-        const saveDefaultBtn = document.getElementById('save-default-btn');
-        const defaultsList = document.getElementById('defaults-list');
-        const noDefaults = document.getElementById('no-defaults');
-        
-        // Kategorien für das Dropdown-Menü
-        const categories = [
-            'Bitte auswählen',
-            'gesund',
-            'ungesund',
-            'spart Geld',
-            'kostet Geld',
-            'schützt Privatsphäre',
-            'verletzt Privatsphäre',
-            'fördert Nachhaltigkeit',
-            'ist umweltschädlich'
-        ];
-        
-        // Event Listener für "Default hinzufügen" Button
-        addDefaultBtn.addEventListener('click', function() {
-            defaultInput.classList.remove('hidden');
-            defaultText.focus();
-        });
-        
-        // Event Listener für "Speichern" Button
-        saveDefaultBtn.addEventListener('click', function() {
-            const text = defaultText.value.trim();
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM-Elemente
+            const addDefaultBtn = document.getElementById('add-default-btn');
+            const defaultInput = document.getElementById('default-input');
+            const defaultText = document.getElementById('default-text');
+            const saveDefaultBtn = document.getElementById('save-default-btn');
+            const defaultsList = document.getElementById('defaults-list');
+            const noDefaults = document.getElementById('no-defaults');
             
-            if (text) {
-                // Default speichern
-                saveDefault(text);
+            // Kategorien für das Dropdown-Menü
+            const categories = [
+                'Bitte auswählen',
+                'gesund',
+                'ungesund',
+                'spart Geld',
+                'kostet Geld',
+                'schützt Privatsphäre',
+                'verletzt Privatsphäre',
+                'fördert Nachhaltigkeit',
+                'ist umweltschädlich'
+            ];
+            
+            // Event Listener für "Default hinzufügen" Button
+            addDefaultBtn.addEventListener('click', function() {
+                defaultInput.classList.remove('hidden');
+                defaultText.focus();
+            });
+            
+            // Event Listener für "Speichern" Button
+            saveDefaultBtn.addEventListener('click', function() {
+                const text = defaultText.value.trim();
                 
-                // Formular zurücksetzen
-                defaultText.value = '';
-                defaultInput.classList.add('hidden');
-            }
-        });
-        
-        // Funktion zum Speichern eines neuen Defaults in Firebase
-        function saveDefault(text) {
-            const db = firebase.database();
-            const defaultsRef = db.ref('userDefaults');
-            
-            // Push zu Firebase
-            const newDefaultRef = defaultsRef.push();
-            newDefaultRef.set({
-                text: text,
-                category: '',
-                timestamp: new Date().toISOString()
-            }).then(() => {
-                console.log("Default erfolgreich gespeichert");
-                // Liste aktualisieren
-                updateDefaultsList();
-            }).catch(error => {
-                console.error("Fehler beim Speichern des Defaults:", error);
+                if (text) {
+                    // Default speichern
+                    saveDefault(text);
+                    
+                    // Formular zurücksetzen
+                    defaultText.value = '';
+                    defaultInput.classList.add('hidden');
+                    
+                    // Liste aktualisieren
+                    updateDefaultsList();
+                }
             });
             
-            // Auch in localStorage speichern für lokale Nutzung
-            const defaults = getStoredData('userDefaults', []);
-            defaults.push({
-                text: text,
-                category: '',
-                timestamp: new Date().toISOString(),
-                firebaseKey: newDefaultRef.key // Speichere den Firebase-Key für Aktualisierungen
-            });
-            
-            storeData('userDefaults', defaults);
-        }
-        
-        // Funktion zum Aktualisieren der Defaults-Liste
-        function updateDefaultsList() {
-            const db = firebase.database();
-            const defaultsRef = db.ref('userDefaults');
-            
-            // Lade Daten aus Firebase
-            defaultsRef.once('value')
-                .then((snapshot) => {
-                    const firebaseDefaults = [];
-                    
-                    // Konvertiere Firebase-Daten in ein Array
-                    snapshot.forEach((childSnapshot) => {
-                        const key = childSnapshot.key;
-                        const data = childSnapshot.val();
-                        
-                        firebaseDefaults.push({
-                            ...data,
-                            firebaseKey: key
-                        });
-                    });
-                    
-                    // Auch in localStorage speichern für lokale Nutzung
-                    storeData('userDefaults', firebaseDefaults);
-                    
-                    // Zeige/verstecke "Keine Defaults" Nachricht
-                    if (firebaseDefaults.length > 0) {
-                        noDefaults.classList.add('hidden');
-                    } else {
-                        noDefaults.classList.remove('hidden');
-                        defaultsList.innerHTML = '';
-                        return;
-                    }
-                    
-                    // Liste leeren und neu aufbauen
-                    let listHTML = '';
-                    
-                    firebaseDefaults.forEach((defaultItem, index) => {
-                        listHTML += `
-                            <div class="default-item">
-                                <div class="default-text">${defaultItem.text}</div>
-                                <select class="category-select" data-key="${defaultItem.firebaseKey}" data-index="${index}">
-                                    ${categories.map((category, catIndex) => {
-                                        const selected = category === defaultItem.category ? 'selected' : '';
-                                        return `<option value="${catIndex === 0 ? '' : category}" ${selected}>${category}</option>`;
-                                    }).join('')}
-                                </select>
-                            </div>
-                        `;
-                    });
-                    
-                    defaultsList.innerHTML = listHTML;
-                    
-                    // Event Listener für Kategorie-Dropdown-Menüs
-                    document.querySelectorAll('.category-select').forEach(select => {
-                        select.addEventListener('change', function() {
-                            const firebaseKey = this.getAttribute('data-key');
-                            const index = parseInt(this.getAttribute('data-index'));
-                            const category = this.value;
-                            
-                            // Kategorie aktualisieren
-                            updateDefaultCategory(firebaseKey, index, category);
-                        });
-                    });
-                })
-                .catch(error => {
-                    console.error("Fehler beim Laden der Defaults:", error);
-                    
-                    // Fallback zu localStorage
-                    const defaults = getStoredData('userDefaults', []);
-                    
-                    if (defaults.length > 0) {
-                        noDefaults.classList.add('hidden');
-                    } else {
-                        noDefaults.classList.remove('hidden');
-                        defaultsList.innerHTML = '';
-                        return;
-                    }
-                    
-                    let listHTML = '';
-                    
-                    defaults.forEach((defaultItem, index) => {
-                        listHTML += `
-                            <div class="default-item">
-                                <div class="default-text">${defaultItem.text}</div>
-                                <select class="category-select" data-key="${defaultItem.firebaseKey}" data-index="${index}">
-                                    ${categories.map((category, catIndex) => {
-                                        const selected = category === defaultItem.category ? 'selected' : '';
-                                        return `<option value="${catIndex === 0 ? '' : category}" ${selected}>${category}</option>`;
-                                    }).join('')}
-                                </select>
-                            </div>
-                        `;
-                    });
-                    
-                    defaultsList.innerHTML = listHTML;
-                    
-                    document.querySelectorAll('.category-select').forEach(select => {
-                        select.addEventListener('change', function() {
-                            const firebaseKey = this.getAttribute('data-key');
-                            const index = parseInt(this.getAttribute('data-index'));
-                            const category = this.value;
-                            
-                            updateDefaultCategory(firebaseKey, index, category);
-                        });
-                    });
+            // Funktion zum Speichern eines neuen Defaults
+            function saveDefault(text) {
+                const defaults = getStoredData('userDefaults', []);
+                
+                defaults.push({
+                    text: text,
+                    category: '',
+                    timestamp: new Date().toISOString()
                 });
-        }
-        
-        // Funktion zum Aktualisieren der Kategorie eines Defaults
-        function updateDefaultCategory(firebaseKey, index, category) {
-            // Firebase aktualisieren
-            const db = firebase.database();
-            const defaultRef = db.ref('userDefaults/' + firebaseKey);
-            
-            defaultRef.update({
-                category: category
-            }).then(() => {
-                console.log("Kategorie erfolgreich aktualisiert");
-            }).catch(error => {
-                console.error("Fehler beim Aktualisieren der Kategorie:", error);
-            });
-            
-            // Auch in localStorage aktualisieren
-            const defaults = getStoredData('userDefaults', []);
-            
-            if (defaults[index]) {
-                defaults[index].category = category;
+                
                 storeData('userDefaults', defaults);
             }
-        }
-        
-        // Helper Funktionen für localStorage
-        function getStoredData(key, defaultValue = []) {
-            const data = localStorage.getItem(key);
-            return data ? JSON.parse(data) : defaultValue;
-        }
+            
+            // Funktion zum Aktualisieren der Defaults-Liste
+            function updateDefaultsList() {
+                const defaults = getStoredData('userDefaults', []);
+                
+                // Zeige/verstecke "Keine Defaults" Nachricht
+                if (defaults.length > 0) {
+                    noDefaults.classList.add('hidden');
+                } else {
+                    noDefaults.classList.remove('hidden');
+                    defaultsList.innerHTML = '';
+                    return;
+                }
+                
+                // Liste leeren und neu aufbauen
+                let listHTML = '';
+                
+                defaults.forEach((defaultItem, index) => {
+                    listHTML += `
+                        <div class="default-item">
+                            <div class="default-text">${defaultItem.text}</div>
+                            <select class="category-select" data-index="${index}">
+                                ${categories.map((category, catIndex) => {
+                                    const selected = category === defaultItem.category ? 'selected' : '';
+                                    return `<option value="${catIndex === 0 ? '' : category}" ${selected}>${category}</option>`;
+                                }).join('')}
+                            </select>
+                        </div>
+                    `;
+                });
+                
+                defaultsList.innerHTML = listHTML;
+                
+                // Event Listener für Kategorie-Dropdown-Menüs
+                document.querySelectorAll('.category-select').forEach(select => {
+                    select.addEventListener('change', function() {
+                        const index = parseInt(this.getAttribute('data-index'));
+                        const category = this.value;
+                        
+                        // Kategorie aktualisieren
+                        updateDefaultCategory(index, category);
+                    });
+                });
+            }
+            
+            // Funktion zum Aktualisieren der Kategorie eines Defaults
+            function updateDefaultCategory(index, category) {
+                const defaults = getStoredData('userDefaults', []);
+                
+                if (defaults[index]) {
+                    defaults[index].category = category;
+                    storeData('userDefaults', defaults);
+                }
+            }
+            
+            // Helper Funktionen für localStorage
+            function getStoredData(key, defaultValue = []) {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : defaultValue;
+            }
 
-        function storeData(key, data) {
-            localStorage.setItem(key, JSON.stringify(data));
-        }
-        
-        // Firebase-Listener für Live-Updates
-        const db = firebase.database();
-        const defaultsRef = db.ref('userDefaults');
-        
-        defaultsRef.on('value', () => {
+            function storeData(key, data) {
+                localStorage.setItem(key, JSON.stringify(data));
+            }
+            
+            // Initiale Anzeige der Liste
             updateDefaultsList();
         });
-        
-        // Initiale Anzeige der Liste
-        updateDefaultsList();
-    }
-
-    // Lade Firebase und starte die App
-    loadFirebase();
-</script>
+    </script>
 </body>
 </html>
