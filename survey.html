@@ -135,12 +135,6 @@
             margin-top: 2rem;
         }
 
-        #continue-btn {
-            margin-top: 1.5rem;
-            background-color: #6247AA;
-            color: white;
-        }
-
         /* Loading indicator */
         .loading {
             text-align: center;
@@ -197,7 +191,6 @@
             <div id="thank-you" class="thank-you hidden">
                 <h3>Vielen Dank für Ihre Teilnahme!</h3>
                 <p>Ihre Antwort wurde erfolgreich gespeichert.</p>
-                <button id="continue-btn">Weiter zu Defaults</button>
             </div>
         </div>
     </div>
@@ -267,10 +260,6 @@
             // Event-Listener für Buttons
             document.getElementById("submit-survey").addEventListener("click", function() {
                 submitSurvey(userId);
-            });
-            
-            document.getElementById("continue-btn").addEventListener("click", function() {
-                window.location.href = "defaults.html";
             });
         });
         

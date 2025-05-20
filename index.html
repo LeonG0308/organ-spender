@@ -110,25 +110,6 @@
             background-color: #d32f2f; /* Darker red */
         }
 
-        #thank-you {
-            text-align: center;
-            padding: 2rem;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        #thank-you h2 {
-            color: #4CAF50;
-            margin-bottom: 1rem;
-        }
-
-        #thank-you button {
-            margin-top: 1rem;
-            background-color: #6247AA;
-            color: white;
-        }
-
         @media (max-width: 768px) {
             .cookie-options {
                 flex-direction: column;
@@ -154,12 +135,6 @@
                     <button id="reject-cookies" class="btn-reject">Ablehnen</button>
                 </div>
             </div>
-        </div>
-
-        <div id="thank-you" class="hidden">
-            <h2>Vielen Dank!</h2>
-            <p>Ihre Einstellung wurde gespeichert.</p>
-            <button id="continue-btn">Weiter zur Umfrage</button>
         </div>
     </div>
     
@@ -210,10 +185,6 @@
             document.getElementById("reject-cookies").addEventListener("click", function() {
                 recordCookieChoice("reject", userId);
             });
-            
-            document.getElementById("continue-btn").addEventListener("click", function() {
-                window.location.href = "survey.html";
-            });
         });
         
         // Cookie-Entscheidung speichern
@@ -228,9 +199,9 @@
                 timestamp: timestamp
             })
             .then(() => {
-                // Dankesmeldung anzeigen
+                // Cookie-Banner ausblenden und direkt zur Umfrage weiterleiten
                 document.getElementById("cookie-banner").style.display = "none";
-                document.getElementById("thank-you").classList.remove("hidden");
+                window.location.href = "survey.html";
             })
             .catch((error) => {
                 console.error("Fehler beim Speichern der Cookie-Entscheidung: ", error);
