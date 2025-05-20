@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Organspende-Präferenz - Umfrage</title>
+    <!-- Firebase SDK Integration -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         /* Global Styles */
         * {
@@ -184,6 +187,49 @@
     </div>
     
     <script>
+        // Firebase Konfiguration und Initialisierung
+        const firebaseConfig = {
+            apiKey: "AIzaSyDwdmMZphbOX0QHl1ltYUXYnFL9lZz-5UY",
+            authDomain: "organ-spender-tracking.firebaseapp.com",
+            databaseURL: "https://organ-spender-tracking-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "organ-spender-tracking",
+            storageBucket: "organ-spender-tracking.appspot.com",
+            messagingSenderId: "658539652373",
+            appId: "1:658539652373:web:59a18b887b6b9644c0de73"
+        };
+        
+        // Firebase initialisieren
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // Cookie-Helfer-Funktionen
+        function setCookie(name, value, days) {
+            const expires = new Date();
+            expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+            document.cookie = name + '=' + value + ';expires=' + expires.toUTCString() + ';path=/;SameSite=Lax';
+        }
+        
+        function getCookie(name) {
+            const cookieArr = document.cookie.split(';');
+            for (let i = 0; i < cookieArr.length; i++) {
+                const cookiePair = cookieArr[i].split('=');
+                if (name === cookiePair[0].trim()) {
+                    return decodeURIComponent(cookiePair[1]);
+                }
+            }
+            return null;
+        }
+        
+        // Eindeutige Nutzer-ID generieren oder abrufen
+        function getUserId() {
+            let userId = getCookie('userId');
+            if (!userId) {
+                userId = 'user_' + new Date().getTime() + '_' + Math.random().toString(36).substring(2, 9);
+                setCookie('userId', userId, 365); // Cookie für 1 Jahr setzen
+            }
+            return userId;
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
             // Da die Radio-Buttons bereits einen Default-Wert haben (Yes ist vorausgewählt),
             // können wir den Submit-Button direkt aktivieren
@@ -193,47 +239,38 @@
             document.getElementById("submit-survey").addEventListener("click", function() {
                 // Bestimme, welche Radio-Option ausgewählt ist
                 const selectedAnswer = document.querySelector('input[name="organ-donation"]:checked').value;
+                const userId = getUserId();
+                const timestamp = new Date().toISOString();
                 
-                // Record the answer - erst versuchen mit sessionStorage, dann mit localStorage
+                // In Firebase speichern
+                database.ref('surveyAnswers/' + userId).set({
+                    answer: selectedAnswer,
+                    timestamp: timestamp
+                }).catch(error => {
+                    console.error("Firebase error:", error);
+                });
+                
+                // Backup in localStorage
                 try {
-                    // Versuche, die Antwort in sessionStorage zu speichern (für geräteübergreifendes Tracking)
-                    const surveyAnswers = getStoredData('surveyAnswers', [], 'session');
-                    surveyAnswers.push({
+                    const localData = localStorage.getItem('surveyAnswers') ? 
+                        JSON.parse(localStorage.getItem('surveyAnswers')) : [];
+                    localData.push({
+                        userId: userId,
                         answer: selectedAnswer,
-                        timestamp: new Date().toISOString()
+                        timestamp: timestamp
                     });
-                    storeData('surveyAnswers', surveyAnswers, 'session');
+                    localStorage.setItem('surveyAnswers', JSON.stringify(localData));
                 } catch (e) {
-                    // Fallback auf localStorage
-                    const surveyAnswers = getStoredData('surveyAnswers', []);
-                    surveyAnswers.push({
-                        answer: selectedAnswer,
-                        timestamp: new Date().toISOString()
-                    });
-                    storeData('surveyAnswers', surveyAnswers);
+                    console.log("localStorage nicht verfügbar:", e);
                 }
                 
-                // Show thank you message
+                // Auch als Cookie speichern
+                setCookie('surveyAnswer', selectedAnswer, 365); // 1 Jahr gültig
+                
+                // Thank you message anzeigen
                 document.querySelector(".survey-question").style.display = "none";
                 document.getElementById("thank-you").classList.remove("hidden");
             });
-            
-            // Helper Funktionen für Storage
-            function getStoredData(key, defaultValue = [], storageType = 'local') {
-                const storage = storageType === 'session' ? sessionStorage : localStorage;
-                const data = storage.getItem(key);
-                return data ? JSON.parse(data) : defaultValue;
-            }
-
-            function storeData(key, data, storageType = 'local') {
-                const storage = storageType === 'session' ? sessionStorage : localStorage;
-                storage.setItem(key, JSON.stringify(data));
-                
-                // Wenn wir in sessionStorage speichern, auch in localStorage speichern für Persistenz
-                if (storageType === 'session') {
-                    localStorage.setItem(key, JSON.stringify(data));
-                }
-            }
         });
     </script>
 </body>

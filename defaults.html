@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Organspende-Präferenz - Defaults</title>
+    <!-- Firebase SDK Integration -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         /* Global Styles */
         * {
@@ -194,6 +197,49 @@
     </div>
     
     <script>
+        // Firebase Konfiguration und Initialisierung
+        const firebaseConfig = {
+            apiKey: "AIzaSyDwdmMZphbOX0QHl1ltYUXYnFL9lZz-5UY",
+            authDomain: "organ-spender-tracking.firebaseapp.com",
+            databaseURL: "https://organ-spender-tracking-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "organ-spender-tracking",
+            storageBucket: "organ-spender-tracking.appspot.com",
+            messagingSenderId: "658539652373",
+            appId: "1:658539652373:web:59a18b887b6b9644c0de73"
+        };
+        
+        // Firebase initialisieren
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // Cookie-Helfer-Funktionen
+        function setCookie(name, value, days) {
+            const expires = new Date();
+            expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+            document.cookie = name + '=' + value + ';expires=' + expires.toUTCString() + ';path=/;SameSite=Lax';
+        }
+        
+        function getCookie(name) {
+            const cookieArr = document.cookie.split(';');
+            for (let i = 0; i < cookieArr.length; i++) {
+                const cookiePair = cookieArr[i].split('=');
+                if (name === cookiePair[0].trim()) {
+                    return decodeURIComponent(cookiePair[1]);
+                }
+            }
+            return null;
+        }
+        
+        // Eindeutige Nutzer-ID generieren oder abrufen
+        function getUserId() {
+            let userId = getCookie('userId');
+            if (!userId) {
+                userId = 'user_' + new Date().getTime() + '_' + Math.random().toString(36).substring(2, 9);
+                setCookie('userId', userId, 365); // Cookie für 1 Jahr setzen
+            }
+            return userId;
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
             // DOM-Elemente
             const addDefaultBtn = document.getElementById('add-default-btn');
@@ -235,42 +281,81 @@
                     defaultInput.classList.add('hidden');
                     
                     // Liste aktualisieren
-                    updateDefaultsList();
+                    loadUserDefaults();
                 }
             });
             
             // Funktion zum Speichern eines neuen Defaults
             function saveDefault(text) {
-                // Versuche erst in sessionStorage, dann in localStorage
+                const timestamp = new Date().toISOString();
+                const userId = getUserId();
+                const defaultId = 'default_' + new Date().getTime();
+                
+                // In Firebase speichern
+                database.ref('userDefaults/' + userId + '/' + defaultId).set({
+                    text: text,
+                    category: '',
+                    timestamp: timestamp
+                }).catch(error => {
+                    console.error("Firebase error:", error);
+                });
+                
+                // Backup in localStorage
                 try {
-                    const defaults = getStoredData('userDefaults', [], 'session');
-                    
-                    defaults.push({
+                    const localData = localStorage.getItem('userDefaults') ? 
+                        JSON.parse(localStorage.getItem('userDefaults')) : [];
+                    localData.push({
+                        id: defaultId,
+                        userId: userId,
                         text: text,
                         category: '',
-                        timestamp: new Date().toISOString()
+                        timestamp: timestamp
                     });
-                    
-                    storeData('userDefaults', defaults, 'session');
+                    localStorage.setItem('userDefaults', JSON.stringify(localData));
                 } catch (e) {
-                    // Fallback auf localStorage
-                    const defaults = getStoredData('userDefaults', []);
-                    
-                    defaults.push({
-                        text: text,
-                        category: '',
-                        timestamp: new Date().toISOString()
-                    });
-                    
-                    storeData('userDefaults', defaults);
+                    console.log("localStorage nicht verfügbar:", e);
                 }
             }
             
-            // Funktion zum Aktualisieren der Defaults-Liste
-            function updateDefaultsList() {
-                // Versuche Daten aus beiden Speicherformen zu laden
-                const defaults = getStoredData('userDefaults', [], 'both');
+            // Funktion zum Laden der Defaults eines Nutzers
+            function loadUserDefaults() {
+                const userId = getUserId();
                 
+                // Aus Firebase laden
+                database.ref('userDefaults/' + userId).once('value').then((snapshot) => {
+                    const defaultsData = snapshot.val() || {};
+                    
+                    // Defaults in Array umwandeln
+                    let defaults = [];
+                    for (let key in defaultsData) {
+                        defaults.push({
+                            id: key,
+                            ...defaultsData[key]
+                        });
+                    }
+                    
+                    // Defaults anzeigen
+                    updateDefaultsList(defaults);
+                }).catch(error => {
+                    console.error("Firebase error:", error);
+                    
+                    // Fallback auf localStorage
+                    try {
+                        const localData = localStorage.getItem('userDefaults') ? 
+                            JSON.parse(localStorage.getItem('userDefaults')) : [];
+                        
+                        // Nur die Defaults des aktuellen Nutzers anzeigen
+                        const userDefaults = localData.filter(item => item.userId === userId);
+                        updateDefaultsList(userDefaults);
+                    } catch (e) {
+                        console.log("localStorage nicht verfügbar:", e);
+                        updateDefaultsList([]);
+                    }
+                });
+            }
+            
+            // Funktion zum Aktualisieren der Defaults-Liste
+            function updateDefaultsList(defaults) {
                 // Zeige/verstecke "Keine Defaults" Nachricht
                 if (defaults.length > 0) {
                     noDefaults.classList.add('hidden');
@@ -287,7 +372,7 @@
                     listHTML += `
                         <div class="default-item">
                             <div class="default-text">${defaultItem.text}</div>
-                            <select class="category-select" data-index="${index}">
+                            <select class="category-select" data-id="${defaultItem.id}">
                                 ${categories.map((category, catIndex) => {
                                     const selected = category === defaultItem.category ? 'selected' : '';
                                     return `<option value="${catIndex === 0 ? '' : category}" ${selected}>${category}</option>`;
@@ -302,74 +387,43 @@
                 // Event Listener für Kategorie-Dropdown-Menüs
                 document.querySelectorAll('.category-select').forEach(select => {
                     select.addEventListener('change', function() {
-                        const index = parseInt(this.getAttribute('data-index'));
+                        const defaultId = this.getAttribute('data-id');
                         const category = this.value;
                         
                         // Kategorie aktualisieren
-                        updateDefaultCategory(index, category);
+                        updateDefaultCategory(defaultId, category);
                     });
                 });
             }
             
             // Funktion zum Aktualisieren der Kategorie eines Defaults
-            function updateDefaultCategory(index, category) {
-                // Versuche erst in sessionStorage, dann in localStorage
+            function updateDefaultCategory(defaultId, category) {
+                const userId = getUserId();
+                
+                // In Firebase aktualisieren
+                database.ref('userDefaults/' + userId + '/' + defaultId).update({
+                    category: category
+                }).catch(error => {
+                    console.error("Firebase error:", error);
+                });
+                
+                // Auch in localStorage aktualisieren
                 try {
-                    const defaults = getStoredData('userDefaults', [], 'session');
+                    const localData = localStorage.getItem('userDefaults') ? 
+                        JSON.parse(localStorage.getItem('userDefaults')) : [];
                     
-                    if (defaults[index]) {
-                        defaults[index].category = category;
-                        storeData('userDefaults', defaults, 'session');
+                    const defaultIndex = localData.findIndex(item => item.id === defaultId);
+                    if (defaultIndex !== -1) {
+                        localData[defaultIndex].category = category;
+                        localStorage.setItem('userDefaults', JSON.stringify(localData));
                     }
                 } catch (e) {
-                    // Fallback auf localStorage
-                    const defaults = getStoredData('userDefaults', []);
-                    
-                    if (defaults[index]) {
-                        defaults[index].category = category;
-                        storeData('userDefaults', defaults);
-                    }
-                }
-            }
-            
-            // Helper Funktionen für Storage
-            function getStoredData(key, defaultValue = [], storageType = 'local') {
-                let data;
-                
-                if (storageType === 'session' || storageType === 'both') {
-                    data = sessionStorage.getItem(key);
-                    if (data) return JSON.parse(data);
-                }
-                
-                if (storageType === 'local' || storageType === 'both') {
-                    data = localStorage.getItem(key);
-                    if (data) return JSON.parse(data);
-                }
-                
-                return defaultValue;
-            }
-
-            function storeData(key, data, storageType = 'local') {
-                const storage = storageType === 'session' ? sessionStorage : localStorage;
-                storage.setItem(key, JSON.stringify(data));
-                
-                // Wenn in sessionStorage gespeichert wird, auch in localStorage speichern
-                if (storageType === 'session') {
-                    localStorage.setItem(key, JSON.stringify(data));
-                }
-                
-                // Synchronisiere beide Speicherformen
-                if (storageType === 'local') {
-                    try {
-                        sessionStorage.setItem(key, JSON.stringify(data));
-                    } catch (e) {
-                        console.log("Konnte nicht in sessionStorage speichern:", e);
-                    }
+                    console.log("localStorage nicht verfügbar:", e);
                 }
             }
             
             // Initiale Anzeige der Liste
-            updateDefaultsList();
+            loadUserDefaults();
         });
     </script>
 </body>
