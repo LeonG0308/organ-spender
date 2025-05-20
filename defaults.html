@@ -117,6 +117,16 @@
             margin-bottom: 1rem;
         }
 
+        .default-input-container select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            background-color: white;
+        }
+
         .default-input-container button {
             background-color: #6247AA; /* PowerPoint purple */
             color: white;
@@ -158,6 +168,14 @@
             font-style: italic;
             margin-top: 2rem;
         }
+
+        /* Loading indicator */
+        .loading {
+            text-align: center;
+            margin: 2rem 0;
+            font-style: italic;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -168,7 +186,11 @@
     </div>
     
     <div class="main-content">
-        <div class="defaults-container">
+        <div id="loading" class="loading">
+            Lade Daten...
+        </div>
+        
+        <div id="defaults-content" class="defaults-container hidden">
             <h2>Defaults im Alltag</h2>
             
             <div class="defaults-description">
@@ -183,6 +205,17 @@
                     Bitte beschreiben Sie kurz eine Alltagssituation, in der eine Standardeinstellung Ihre Entscheidung beeinflusst hat:
                 </div>
                 <textarea id="default-text" placeholder="Beispiel: Automatisches WhatsApp Backup"></textarea>
+                <select id="category-select">
+                    <option value="">Bitte auswählen</option>
+                    <option value="gesund">gesund</option>
+                    <option value="ungesund">ungesund</option>
+                    <option value="spart Geld">spart Geld</option>
+                    <option value="kostet Geld">kostet Geld</option>
+                    <option value="schützt Privatsphäre">schützt Privatsphäre</option>
+                    <option value="verletzt Privatsphäre">verletzt Privatsphäre</option>
+                    <option value="fördert Nachhaltigkeit">fördert Nachhaltigkeit</option>
+                    <option value="ist umweltschädlich">ist umweltschädlich</option>
+                </select>
                 <button id="save-default-btn">Speichern</button>
             </div>
             
@@ -193,216 +226,210 @@
         </div>
     </div>
     
+    <!-- Firebase SDK einbinden -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
     <script>
-        // Hilffunktionen für Cookies
-        function setCookie(name, value, days) {
-            const date = new Date();
-            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-            const expires = "; expires=" + date.toUTCString();
-            document.cookie = name + "=" + encodeURIComponent(JSON.stringify(value)) + expires + "; path=/; SameSite=Lax";
-        }
+        // Firebase Konfiguration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBv9_230x8pKkSsUGzQGapxR-Tc-ORlvYk",
+            authDomain: "organ-spender-tracking.firebaseapp.com",
+            projectId: "organ-spender-tracking",
+            storageBucket: "organ-spender-tracking.appspot.com",
+            messagingSenderId: "603969879454",
+            appId: "1:603969879454:web:b5d31bf1ca9d2382ff8c7f"
+        };
         
-        function getCookie(name) {
-            const nameEQ = name + "=";
-            const ca = document.cookie.split(';');
-            for (let i = 0; i < ca.length; i++) {
-                let c = ca[i];
-                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-                if (c.indexOf(nameEQ) === 0) {
-                    try {
-                        return JSON.parse(decodeURIComponent(c.substring(nameEQ.length, c.length)));
-                    } catch (e) {
-                        return null;
-                    }
-                }
+        // Firebase initialisieren
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
+        // Kategorien für das Dropdown-Menü
+        const categories = [
+            'Bitte auswählen',
+            'gesund',
+            'ungesund',
+            'spart Geld',
+            'kostet Geld',
+            'schützt Privatsphäre',
+            'verletzt Privatsphäre',
+            'fördert Nachhaltigkeit',
+            'ist umweltschädlich'
+        ];
+        
+        // Generiere eindeutige Session-ID für den Teilnehmer
+        function generateSessionId() {
+            const existingId = localStorage.getItem('userId');
+            if (existingId) {
+                return existingId;
             }
-            return null;
+            
+            const newId = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
+            localStorage.setItem('userId', newId);
+            return newId;
         }
         
-        // Generiere eine eindeutige ID für den Nutzer
-        function generateUserId() {
-            return 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-        }
-        
-        // Prüfe, ob der Nutzer bereits eine ID hat
-        function getUserId() {
-            let userId = getCookie('userId');
-            if (!userId) {
-                userId = generateUserId();
-                setCookie('userId', userId, 365); // 1 Jahr
-            }
-            return userId;
-        }
-        
-        // Generiere eine eindeutige ID für einen Default
+        // Generiere eindeutige ID für einen Default
         function generateDefaultId() {
-            return 'default_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+            return 'default_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
         }
         
-        // Speicherfunktionen
-        function getStoredData(key) {
-            // Erst versuchen vom Cookie zu lesen
-            const cookieData = getCookie('data_' + key);
-            if (cookieData) {
-                return cookieData;
-            }
-            
-            // Dann von localStorage
-            try {
-                const data = localStorage.getItem(key);
-                return data ? JSON.parse(data) : [];
-            } catch (e) {
-                console.error("localStorage error:", e);
-                return [];
-            }
-        }
-        
-        function storeData(key, data) {
-            // In Cookie speichern
-            setCookie('data_' + key, data, 365); // 1 Jahr
-            
-            // Auch in localStorage
-            try {
-                localStorage.setItem(key, JSON.stringify(data));
-            } catch (e) {
-                console.error("localStorage error:", e);
-            }
-        }
-        
+        // Beim Laden der Seite
         document.addEventListener('DOMContentLoaded', function() {
-            // DOM-Elemente
-            const addDefaultBtn = document.getElementById('add-default-btn');
-            const defaultInput = document.getElementById('default-input');
-            const defaultText = document.getElementById('default-text');
-            const saveDefaultBtn = document.getElementById('save-default-btn');
-            const defaultsList = document.getElementById('defaults-list');
-            const noDefaults = document.getElementById('no-defaults');
+            // Generiere eine userId falls noch nicht vorhanden
+            const userId = generateSessionId();
             
-            // Kategorien für das Dropdown-Menü
-            const categories = [
-                'Bitte auswählen',
-                'gesund',
-                'ungesund',
-                'spart Geld',
-                'kostet Geld',
-                'schützt Privatsphäre',
-                'verletzt Privatsphäre',
-                'fördert Nachhaltigkeit',
-                'ist umweltschädlich'
-            ];
+            // Lade bestehende Defaults des Nutzers
+            loadUserDefaults(userId);
             
-            // Beim Laden der Seite Defaults anzeigen
-            updateDefaultsList();
-            
-            // Event Listener für "Default hinzufügen" Button
-            addDefaultBtn.addEventListener('click', function() {
-                defaultInput.classList.remove('hidden');
-                defaultText.focus();
+            // Event-Listener für Buttons
+            document.getElementById("add-default-btn").addEventListener("click", function() {
+                document.getElementById('default-input').classList.remove('hidden');
+                document.getElementById('default-text').focus();
             });
             
-            // Event Listener für "Speichern" Button
-            saveDefaultBtn.addEventListener('click', function() {
-                const text = defaultText.value.trim();
+            document.getElementById("save-default-btn").addEventListener("click", function() {
+                const text = document.getElementById('default-text').value.trim();
+                const category = document.getElementById('category-select').value;
                 
-                if (text) {
-                    // Default speichern
-                    saveDefault(text);
-                    
-                    // Formular zurücksetzen
-                    defaultText.value = '';
-                    defaultInput.classList.add('hidden');
-                    
-                    // Liste aktualisieren
-                    updateDefaultsList();
-                }
-            });
-            
-            // Funktion zum Speichern eines neuen Defaults
-            function saveDefault(text) {
-                const userId = getUserId();
-                const defaultId = generateDefaultId();
-                const timestamp = new Date().toISOString();
-                
-                // Defaults aus dem Speicher laden
-                const userDefaults = getStoredData('userDefaults');
-                
-                // Neuen Default hinzufügen
-                userDefaults.push({
-                    id: defaultId,
-                    userId: userId,
-                    text: text,
-                    category: '',
-                    timestamp: timestamp
-                });
-                
-                // Daten speichern
-                storeData('userDefaults', userDefaults);
-            }
-            
-            // Funktion zum Aktualisieren der Defaults-Liste
-            function updateDefaultsList() {
-                // Defaults aus dem Speicher laden
-                const userDefaults = getStoredData('userDefaults');
-                const userId = getUserId();
-                
-                // Nur die Defaults des aktuellen Nutzers filtern
-                const myDefaults = userDefaults.filter(d => d.userId === userId);
-                
-                // Zeige/verstecke "Keine Defaults" Nachricht
-                if (myDefaults.length > 0) {
-                    noDefaults.classList.add('hidden');
-                } else {
-                    noDefaults.classList.remove('hidden');
-                    defaultsList.innerHTML = '';
+                if (!text) {
+                    alert("Bitte geben Sie einen Text ein.");
                     return;
                 }
                 
-                // Liste leeren und neu aufbauen
-                let listHTML = '';
+                if (!category) {
+                    alert("Bitte wählen Sie eine Kategorie aus.");
+                    return;
+                }
                 
-                myDefaults.forEach((defaultItem, index) => {
-                    listHTML += `
-                        <div class="default-item">
-                            <div class="default-text">${defaultItem.text}</div>
-                            <select class="category-select" data-id="${defaultItem.id}">
-                                ${categories.map((category, catIndex) => {
-                                    const selected = category === defaultItem.category ? 'selected' : '';
-                                    return `<option value="${catIndex === 0 ? '' : category}" ${selected}>${category}</option>`;
-                                }).join('')}
-                            </select>
-                        </div>
-                    `;
-                });
-                
-                defaultsList.innerHTML = listHTML;
-                
-                // Event Listener für Kategorie-Dropdown-Menüs
-                document.querySelectorAll('.category-select').forEach(select => {
-                    select.addEventListener('change', function() {
-                        const defaultId = this.getAttribute('data-id');
-                        const category = this.value;
-                        
-                        // Kategorie aktualisieren
-                        updateDefaultCategory(defaultId, category);
+                saveDefault(text, category, userId);
+            });
+        });
+        
+        // Defaults des Nutzers laden
+        function loadUserDefaults(userId) {
+            db.collection("userDefaults")
+                .where("userId", "==", userId)
+                .get()
+                .then((querySnapshot) => {
+                    // Ladeindikator ausblenden
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('defaults-content').classList.remove('hidden');
+                    
+                    if (querySnapshot.empty) {
+                        // Keine Defaults vorhanden
+                        document.getElementById('no-defaults').classList.remove('hidden');
+                        return;
+                    }
+                    
+                    // Defaults in Array umwandeln
+                    const defaults = [];
+                    querySnapshot.forEach((doc) => {
+                        defaults.push({
+                            id: doc.id,
+                            ...doc.data()
+                        });
                     });
+                    
+                    // Defaults anzeigen
+                    updateDefaultsList(defaults);
+                })
+                .catch((error) => {
+                    console.error("Fehler beim Laden der Defaults: ", error);
+                    // Bei Fehler trotzdem UI anzeigen
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('defaults-content').classList.remove('hidden');
+                    alert("Beim Laden der Daten ist ein Fehler aufgetreten.");
                 });
+        }
+        
+        // Default speichern
+        function saveDefault(text, category, userId) {
+            const defaultId = generateDefaultId();
+            const timestamp = new Date().toISOString();
+            
+            db.collection("userDefaults").add({
+                defaultId: defaultId,
+                userId: userId,
+                text: text,
+                category: category,
+                timestamp: timestamp
+            })
+            .then((docRef) => {
+                // Formular zurücksetzen
+                document.getElementById('default-text').value = '';
+                document.getElementById('category-select').value = '';
+                document.getElementById('default-input').classList.add('hidden');
+                
+                // Defaults neu laden
+                loadUserDefaults(userId);
+            })
+            .catch((error) => {
+                console.error("Fehler beim Speichern des Defaults: ", error);
+                alert("Beim Speichern ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.");
+            });
+        }
+        
+        // Default-Kategorie aktualisieren
+        function updateDefaultCategory(docId, category) {
+            db.collection("userDefaults").doc(docId).update({
+                category: category
+            })
+            .then(() => {
+                console.log("Kategorie erfolgreich aktualisiert");
+            })
+            .catch((error) => {
+                console.error("Fehler beim Aktualisieren der Kategorie: ", error);
+                alert("Beim Aktualisieren der Kategorie ist ein Fehler aufgetreten.");
+            });
+        }
+        
+        // Defaults-Liste aktualisieren
+        function updateDefaultsList(defaults) {
+            const defaultsList = document.getElementById('defaults-list');
+            const noDefaults = document.getElementById('no-defaults');
+            
+            // Leere Liste wenn keine Defaults vorhanden
+            if (defaults.length === 0) {
+                defaultsList.innerHTML = '';
+                noDefaults.classList.remove('hidden');
+                return;
             }
             
-            // Funktion zum Aktualisieren der Kategorie eines Defaults
-            function updateDefaultCategory(defaultId, category) {
-                // Defaults aus dem Speicher laden
-                const userDefaults = getStoredData('userDefaults');
-                
-                // Default finden und aktualisieren
-                const defaultItem = userDefaults.find(d => d.id === defaultId);
-                
-                if (defaultItem) {
-                    defaultItem.category = category;
-                    // Daten speichern
-                    storeData('userDefaults', userDefaults);
-                }
-            }
-        });
+            // Verstecke die "Keine Defaults" Nachricht
+            noDefaults.classList.add('hidden');
+            
+            // Liste generieren
+            let listHTML = '';
+            defaults.forEach((defaultItem) => {
+                listHTML += `
+                    <div class="default-item">
+                        <div class="default-text">${defaultItem.text}</div>
+                        <select class="category-select" data-id="${defaultItem.id}">
+                            ${categories.map((category, catIndex) => {
+                                const selected = category === defaultItem.category ? 'selected' : '';
+                                return `<option value="${catIndex === 0 ? '' : category}" ${selected}>${category}</option>`;
+                            }).join('')}
+                        </select>
+                    </div>
+                `;
+            });
+            
+            // HTML einfügen
+            defaultsList.innerHTML = listHTML;
+            
+            // Event-Listener für Kategorie-Dropdown-Menüs
+            document.querySelectorAll('.category-select').forEach(select => {
+                select.addEventListener('change', function() {
+                    const docId = this.getAttribute('data-id');
+                    const category = this.value;
+                    
+                    // Kategorie aktualisieren
+                    updateDefaultCategory(docId, category);
+                });
+            });
+        }
     </script>
 </body>
 </html>

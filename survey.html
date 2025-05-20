@@ -135,6 +135,20 @@
             margin-top: 2rem;
         }
 
+        #continue-btn {
+            margin-top: 1.5rem;
+            background-color: #6247AA;
+            color: white;
+        }
+
+        /* Loading indicator */
+        .loading {
+            text-align: center;
+            margin: 2rem 0;
+            font-style: italic;
+            color: #666;
+        }
+
         @media (max-width: 768px) {
             .answer-options {
                 flex-direction: column;
@@ -150,6 +164,10 @@
     </div>
     
     <div class="main-content">
+        <div id="loading" class="loading hidden">
+            Lade Daten...
+        </div>
+        
         <div id="survey" class="survey-container">
             <h2>Umfrage zur Organspende</h2>
             
@@ -179,123 +197,112 @@
             <div id="thank-you" class="thank-you hidden">
                 <h3>Vielen Dank für Ihre Teilnahme!</h3>
                 <p>Ihre Antwort wurde erfolgreich gespeichert.</p>
+                <button id="continue-btn">Weiter zu Defaults</button>
             </div>
         </div>
     </div>
     
+    <!-- Firebase SDK einbinden -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
     <script>
-        // Hilffunktionen für Cookies
-        function setCookie(name, value, days) {
-            const date = new Date();
-            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-            const expires = "; expires=" + date.toUTCString();
-            document.cookie = name + "=" + encodeURIComponent(JSON.stringify(value)) + expires + "; path=/; SameSite=Lax";
-        }
+        // Firebase Konfiguration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBv9_230x8pKkSsUGzQGapxR-Tc-ORlvYk",
+            authDomain: "organ-spender-tracking.firebaseapp.com",
+            projectId: "organ-spender-tracking",
+            storageBucket: "organ-spender-tracking.appspot.com",
+            messagingSenderId: "603969879454",
+            appId: "1:603969879454:web:b5d31bf1ca9d2382ff8c7f"
+        };
         
-        function getCookie(name) {
-            const nameEQ = name + "=";
-            const ca = document.cookie.split(';');
-            for (let i = 0; i < ca.length; i++) {
-                let c = ca[i];
-                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-                if (c.indexOf(nameEQ) === 0) {
-                    try {
-                        return JSON.parse(decodeURIComponent(c.substring(nameEQ.length, c.length)));
-                    } catch (e) {
-                        return null;
-                    }
-                }
-            }
-            return null;
-        }
+        // Firebase initialisieren
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
         
-        // Generiere eine eindeutige ID für den Nutzer
-        function generateUserId() {
-            return 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-        }
-        
-        // Prüfe, ob der Nutzer bereits eine ID hat
-        function getUserId() {
-            let userId = getCookie('userId');
-            if (!userId) {
-                userId = generateUserId();
-                setCookie('userId', userId, 365); // 1 Jahr
-            }
-            return userId;
-        }
-        
-        // Speicherfunktionen
-        function getStoredData(key) {
-            // Erst versuchen vom Cookie zu lesen
-            const cookieData = getCookie('data_' + key);
-            if (cookieData) {
-                return cookieData;
+        // Generiere eindeutige Session-ID für den Teilnehmer
+        function generateSessionId() {
+            const existingId = localStorage.getItem('userId');
+            if (existingId) {
+                return existingId;
             }
             
-            // Dann von localStorage
-            try {
-                const data = localStorage.getItem(key);
-                return data ? JSON.parse(data) : [];
-            } catch (e) {
-                console.error("localStorage error:", e);
-                return [];
-            }
+            const newId = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
+            localStorage.setItem('userId', newId);
+            return newId;
         }
         
-        function storeData(key, data) {
-            // In Cookie speichern
-            setCookie('data_' + key, data, 365); // 1 Jahr
-            
-            // Auch in localStorage
-            try {
-                localStorage.setItem(key, JSON.stringify(data));
-            } catch (e) {
-                console.error("localStorage error:", e);
-            }
-        }
-        
+        // Beim Laden der Seite
         document.addEventListener('DOMContentLoaded', function() {
-            // Da die Radio-Buttons bereits einen Default-Wert haben (Yes ist vorausgewählt),
-            // können wir den Submit-Button direkt aktivieren
-            document.getElementById("submit-survey").disabled = false;
+            // Zeige Ladeindikator
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('survey').classList.add('hidden');
             
-            // Handle survey submission
+            // Generiere eine userId falls noch nicht vorhanden
+            const userId = generateSessionId();
+            
+            // Prüfen, ob der Nutzer bereits an der Umfrage teilgenommen hat
+            db.collection("surveyAnswers")
+                .where("userId", "==", userId)
+                .get()
+                .then((querySnapshot) => {
+                    // Ladeindikator ausblenden
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('survey').classList.remove('hidden');
+                    
+                    if (!querySnapshot.empty) {
+                        // Nutzer hat bereits teilgenommen, direkt Danke anzeigen
+                        document.querySelector(".survey-question").style.display = "none";
+                        document.getElementById("thank-you").classList.remove("hidden");
+                    }
+                })
+                .catch((error) => {
+                    console.error("Fehler beim Abrufen der Daten: ", error);
+                    // Bei Fehler trotzdem Umfrage anzeigen
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('survey').classList.remove('hidden');
+                });
+            
+            // Event-Listener für Buttons
             document.getElementById("submit-survey").addEventListener("click", function() {
-                // Bestimme, welche Radio-Option ausgewählt ist
-                const selectedAnswer = document.querySelector('input[name="organ-donation"]:checked').value;
-                const userId = getUserId();
-                const timestamp = new Date().toISOString();
-                
-                // Bestehende Daten laden
-                const surveyAnswers = getStoredData('surveyAnswers');
-                
-                // Prüfen, ob dieser User bereits eine Antwort gegeben hat
-                const existingAnswer = surveyAnswers.find(a => a.userId === userId);
-                
-                if (existingAnswer) {
-                    // Bestehende Antwort aktualisieren
-                    existingAnswer.answer = selectedAnswer;
-                    existingAnswer.timestamp = timestamp;
-                } else {
-                    // Neue Antwort hinzufügen
-                    surveyAnswers.push({
-                        userId: userId,
-                        answer: selectedAnswer,
-                        timestamp: timestamp
-                    });
-                }
-                
-                // Daten speichern
-                storeData('surveyAnswers', surveyAnswers);
-                
-                // Direkten Cookie für diese Antwort setzen
-                setCookie('surveyAnswer', {answer: selectedAnswer, timestamp: timestamp}, 365);
-                
-                // Thank you message anzeigen
-                document.querySelector(".survey-question").style.display = "none";
-                document.getElementById("thank-you").classList.remove("hidden");
+                submitSurvey(userId);
+            });
+            
+            document.getElementById("continue-btn").addEventListener("click", function() {
+                window.location.href = "defaults.html";
             });
         });
+        
+        // Umfrageantwort absenden
+        function submitSurvey(userId) {
+            // Bestimme, welche Radio-Option ausgewählt ist
+            const selectedAnswer = document.querySelector('input[name="organ-donation"]:checked').value;
+            const timestamp = new Date().toISOString();
+            
+            // In Firebase speichern
+            db.collection("surveyAnswers").add({
+                userId: userId,
+                answer: selectedAnswer,
+                timestamp: timestamp
+            })
+            .then(() => {
+                // Dankesmeldung anzeigen
+                document.querySelector(".survey-question").style.display = "none";
+                document.getElementById("thank-you").classList.remove("hidden");
+            })
+            .catch((error) => {
+                console.error("Fehler beim Speichern der Antwort: ", error);
+                alert("Beim Speichern Ihrer Antwort ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.");
+            });
+            
+            // Auch lokal speichern für Fallback
+            try {
+                localStorage.setItem('surveyAnswer', selectedAnswer);
+            } catch (e) {
+                console.error("localStorage error:", e);
+            }
+        }
     </script>
 </body>
 </html>
