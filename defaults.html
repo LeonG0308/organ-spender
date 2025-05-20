@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Organspende-Präferenz - Defaults</title>
-    <!-- Firebase SDK Integration -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         /* Global Styles */
         * {
@@ -197,47 +194,79 @@
     </div>
     
     <script>
-        // Firebase Konfiguration und Initialisierung
-        const firebaseConfig = {
-            apiKey: "AIzaSyDwdmMZphbOX0QHl1ltYUXYnFL9lZz-5UY",
-            authDomain: "organ-spender-tracking.firebaseapp.com",
-            databaseURL: "https://organ-spender-tracking-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "organ-spender-tracking",
-            storageBucket: "organ-spender-tracking.appspot.com",
-            messagingSenderId: "658539652373",
-            appId: "1:658539652373:web:59a18b887b6b9644c0de73"
-        };
-        
-        // Firebase initialisieren
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        
-        // Cookie-Helfer-Funktionen
+        // Hilffunktionen für Cookies
         function setCookie(name, value, days) {
-            const expires = new Date();
-            expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
-            document.cookie = name + '=' + value + ';expires=' + expires.toUTCString() + ';path=/;SameSite=Lax';
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            const expires = "; expires=" + date.toUTCString();
+            document.cookie = name + "=" + encodeURIComponent(JSON.stringify(value)) + expires + "; path=/; SameSite=Lax";
         }
         
         function getCookie(name) {
-            const cookieArr = document.cookie.split(';');
-            for (let i = 0; i < cookieArr.length; i++) {
-                const cookiePair = cookieArr[i].split('=');
-                if (name === cookiePair[0].trim()) {
-                    return decodeURIComponent(cookiePair[1]);
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) {
+                    try {
+                        return JSON.parse(decodeURIComponent(c.substring(nameEQ.length, c.length)));
+                    } catch (e) {
+                        return null;
+                    }
                 }
             }
             return null;
         }
         
-        // Eindeutige Nutzer-ID generieren oder abrufen
+        // Generiere eine eindeutige ID für den Nutzer
+        function generateUserId() {
+            return 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+        }
+        
+        // Prüfe, ob der Nutzer bereits eine ID hat
         function getUserId() {
             let userId = getCookie('userId');
             if (!userId) {
-                userId = 'user_' + new Date().getTime() + '_' + Math.random().toString(36).substring(2, 9);
-                setCookie('userId', userId, 365); // Cookie für 1 Jahr setzen
+                userId = generateUserId();
+                setCookie('userId', userId, 365); // 1 Jahr
             }
             return userId;
+        }
+        
+        // Generiere eine eindeutige ID für einen Default
+        function generateDefaultId() {
+            return 'default_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+        }
+        
+        // Speicherfunktionen
+        function getStoredData(key) {
+            // Erst versuchen vom Cookie zu lesen
+            const cookieData = getCookie('data_' + key);
+            if (cookieData) {
+                return cookieData;
+            }
+            
+            // Dann von localStorage
+            try {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : [];
+            } catch (e) {
+                console.error("localStorage error:", e);
+                return [];
+            }
+        }
+        
+        function storeData(key, data) {
+            // In Cookie speichern
+            setCookie('data_' + key, data, 365); // 1 Jahr
+            
+            // Auch in localStorage
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
+            } catch (e) {
+                console.error("localStorage error:", e);
+            }
         }
         
         document.addEventListener('DOMContentLoaded', function() {
@@ -262,6 +291,9 @@
                 'ist umweltschädlich'
             ];
             
+            // Beim Laden der Seite Defaults anzeigen
+            updateDefaultsList();
+            
             // Event Listener für "Default hinzufügen" Button
             addDefaultBtn.addEventListener('click', function() {
                 defaultInput.classList.remove('hidden');
@@ -281,83 +313,43 @@
                     defaultInput.classList.add('hidden');
                     
                     // Liste aktualisieren
-                    loadUserDefaults();
+                    updateDefaultsList();
                 }
             });
             
             // Funktion zum Speichern eines neuen Defaults
             function saveDefault(text) {
-                const timestamp = new Date().toISOString();
                 const userId = getUserId();
-                const defaultId = 'default_' + new Date().getTime();
+                const defaultId = generateDefaultId();
+                const timestamp = new Date().toISOString();
                 
-                // In Firebase speichern
-                database.ref('userDefaults/' + userId + '/' + defaultId).set({
+                // Defaults aus dem Speicher laden
+                const userDefaults = getStoredData('userDefaults');
+                
+                // Neuen Default hinzufügen
+                userDefaults.push({
+                    id: defaultId,
+                    userId: userId,
                     text: text,
                     category: '',
                     timestamp: timestamp
-                }).catch(error => {
-                    console.error("Firebase error:", error);
                 });
                 
-                // Backup in localStorage
-                try {
-                    const localData = localStorage.getItem('userDefaults') ? 
-                        JSON.parse(localStorage.getItem('userDefaults')) : [];
-                    localData.push({
-                        id: defaultId,
-                        userId: userId,
-                        text: text,
-                        category: '',
-                        timestamp: timestamp
-                    });
-                    localStorage.setItem('userDefaults', JSON.stringify(localData));
-                } catch (e) {
-                    console.log("localStorage nicht verfügbar:", e);
-                }
-            }
-            
-            // Funktion zum Laden der Defaults eines Nutzers
-            function loadUserDefaults() {
-                const userId = getUserId();
-                
-                // Aus Firebase laden
-                database.ref('userDefaults/' + userId).once('value').then((snapshot) => {
-                    const defaultsData = snapshot.val() || {};
-                    
-                    // Defaults in Array umwandeln
-                    let defaults = [];
-                    for (let key in defaultsData) {
-                        defaults.push({
-                            id: key,
-                            ...defaultsData[key]
-                        });
-                    }
-                    
-                    // Defaults anzeigen
-                    updateDefaultsList(defaults);
-                }).catch(error => {
-                    console.error("Firebase error:", error);
-                    
-                    // Fallback auf localStorage
-                    try {
-                        const localData = localStorage.getItem('userDefaults') ? 
-                            JSON.parse(localStorage.getItem('userDefaults')) : [];
-                        
-                        // Nur die Defaults des aktuellen Nutzers anzeigen
-                        const userDefaults = localData.filter(item => item.userId === userId);
-                        updateDefaultsList(userDefaults);
-                    } catch (e) {
-                        console.log("localStorage nicht verfügbar:", e);
-                        updateDefaultsList([]);
-                    }
-                });
+                // Daten speichern
+                storeData('userDefaults', userDefaults);
             }
             
             // Funktion zum Aktualisieren der Defaults-Liste
-            function updateDefaultsList(defaults) {
+            function updateDefaultsList() {
+                // Defaults aus dem Speicher laden
+                const userDefaults = getStoredData('userDefaults');
+                const userId = getUserId();
+                
+                // Nur die Defaults des aktuellen Nutzers filtern
+                const myDefaults = userDefaults.filter(d => d.userId === userId);
+                
                 // Zeige/verstecke "Keine Defaults" Nachricht
-                if (defaults.length > 0) {
+                if (myDefaults.length > 0) {
                     noDefaults.classList.add('hidden');
                 } else {
                     noDefaults.classList.remove('hidden');
@@ -368,7 +360,7 @@
                 // Liste leeren und neu aufbauen
                 let listHTML = '';
                 
-                defaults.forEach((defaultItem, index) => {
+                myDefaults.forEach((defaultItem, index) => {
                     listHTML += `
                         <div class="default-item">
                             <div class="default-text">${defaultItem.text}</div>
@@ -398,32 +390,18 @@
             
             // Funktion zum Aktualisieren der Kategorie eines Defaults
             function updateDefaultCategory(defaultId, category) {
-                const userId = getUserId();
+                // Defaults aus dem Speicher laden
+                const userDefaults = getStoredData('userDefaults');
                 
-                // In Firebase aktualisieren
-                database.ref('userDefaults/' + userId + '/' + defaultId).update({
-                    category: category
-                }).catch(error => {
-                    console.error("Firebase error:", error);
-                });
+                // Default finden und aktualisieren
+                const defaultItem = userDefaults.find(d => d.id === defaultId);
                 
-                // Auch in localStorage aktualisieren
-                try {
-                    const localData = localStorage.getItem('userDefaults') ? 
-                        JSON.parse(localStorage.getItem('userDefaults')) : [];
-                    
-                    const defaultIndex = localData.findIndex(item => item.id === defaultId);
-                    if (defaultIndex !== -1) {
-                        localData[defaultIndex].category = category;
-                        localStorage.setItem('userDefaults', JSON.stringify(localData));
-                    }
-                } catch (e) {
-                    console.log("localStorage nicht verfügbar:", e);
+                if (defaultItem) {
+                    defaultItem.category = category;
+                    // Daten speichern
+                    storeData('userDefaults', userDefaults);
                 }
             }
-            
-            // Initiale Anzeige der Liste
-            loadUserDefaults();
         });
     </script>
 </body>

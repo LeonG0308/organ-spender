@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Organspende-Präferenz - Admin</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
-    <!-- Firebase SDK Integration -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         /* Global Styles */
         * {
@@ -418,20 +415,60 @@
     </div>
     
     <script>
-        // Firebase Konfiguration und Initialisierung
-        const firebaseConfig = {
-            apiKey: "AIzaSyDwdmMZphbOX0QHl1ltYUXYnFL9lZz-5UY",
-            authDomain: "organ-spender-tracking.firebaseapp.com",
-            databaseURL: "https://organ-spender-tracking-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "organ-spender-tracking",
-            storageBucket: "organ-spender-tracking.appspot.com",
-            messagingSenderId: "658539652373",
-            appId: "1:658539652373:web:59a18b887b6b9644c0de73"
-        };
+        // Hilfsfunktionen für Cookies
+        function setCookie(name, value, days) {
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            const expires = "; expires=" + date.toUTCString();
+            document.cookie = name + "=" + encodeURIComponent(JSON.stringify(value)) + expires + "; path=/; SameSite=Lax";
+        }
         
-        // Firebase initialisieren
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) {
+                    try {
+                        return JSON.parse(decodeURIComponent(c.substring(nameEQ.length, c.length)));
+                    } catch (e) {
+                        return null;
+                    }
+                }
+            }
+            return null;
+        }
+        
+        // Speicherfunktionen
+        function getStoredData(key) {
+            // Erst versuchen vom Cookie zu lesen
+            const cookieData = getCookie('data_' + key);
+            if (cookieData) {
+                return cookieData;
+            }
+            
+            // Dann von localStorage
+            try {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : [];
+            } catch (e) {
+                console.error("localStorage error:", e);
+                return [];
+            }
+        }
+        
+        function storeData(key, data) {
+            // In Cookie speichern
+            setCookie('data_' + key, data, 365); // 1 Jahr
+            
+            // Auch in localStorage
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
+            } catch (e) {
+                console.error("localStorage error:", e);
+            }
+        }
         
         // Warte bis die Seite vollständig geladen ist
         document.addEventListener('DOMContentLoaded', function() {
@@ -564,24 +601,13 @@
             });
             
             confirmResetCookies.addEventListener("click", function() {
-                // Firebase Daten löschen
-                database.ref('cookieChoices').remove().then(() => {
-                    console.log("Firebase cookieChoices gelöscht");
-                }).catch(error => {
-                    console.error("Firebase error:", error);
-                });
+                // Cookies löschen
+                document.cookie = "data_cookieChoices=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                document.cookie = "data_surveyAnswers=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT";
                 
-                database.ref('surveyAnswers').remove().then(() => {
-                    console.log("Firebase surveyAnswers gelöscht");
-                }).catch(error => {
-                    console.error("Firebase error:", error);
-                });
-                
-                // Lokale Daten löschen
+                // localStorage leeren
                 localStorage.removeItem('cookieChoices');
-                sessionStorage.removeItem('cookieChoices');
                 localStorage.removeItem('surveyAnswers');
-                sessionStorage.removeItem('surveyAnswers');
                 
                 resetCookiesConfirm.classList.add("hidden");
                 loadCookieData();
@@ -601,16 +627,11 @@
             });
             
             confirmResetDefaults.addEventListener("click", function() {
-                // Firebase Daten löschen
-                database.ref('userDefaults').remove().then(() => {
-                    console.log("Firebase userDefaults gelöscht");
-                }).catch(error => {
-                    console.error("Firebase error:", error);
-                });
+                // Cookies löschen
+                document.cookie = "data_userDefaults=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT";
                 
-                // Lokale Daten löschen
+                // localStorage leeren
                 localStorage.removeItem('userDefaults');
-                sessionStorage.removeItem('userDefaults');
                 
                 resetDefaultsConfirm.classList.add("hidden");
                 loadDefaultsData();
@@ -672,64 +693,37 @@
             function loadCookieData() {
                 console.log("Cookie-Daten werden geladen"); // Debug-Meldung
                 
-                // Aus Firebase laden
-                database.ref('cookieChoices').once('value').then((snapshot) => {
-                    const cookieData = snapshot.val() || {};
-                    
-                    // Zähle Akzeptiert und Abgelehnt
-                    let acceptCount = 0;
-                    let rejectCount = 0;
-                    
-                    for (let userId in cookieData) {
-                        if (cookieData[userId].choice === 'accept') {
-                            acceptCount++;
-                        } else if (cookieData[userId].choice === 'reject') {
-                            rejectCount++;
-                        }
+                // Cookie-Entscheidungen laden
+                const cookieChoices = getStoredData('cookieChoices');
+                
+                // Zähle Akzeptiert und Abgelehnt
+                let acceptCount = 0;
+                let rejectCount = 0;
+                
+                // Alle gespeicherten Entscheidungen durchgehen
+                for (let i = 0; i < cookieChoices.length; i++) {
+                    if (cookieChoices[i].choice === 'accept') {
+                        acceptCount++;
+                    } else if (cookieChoices[i].choice === 'reject') {
+                        rejectCount++;
                     }
-                    
-                    // Auch surveyAnswers zählen
-                    database.ref('surveyAnswers').once('value').then((snapshot) => {
-                        const surveyData = snapshot.val() || {};
-                        
-                        // Aktualisiere Diagramm
-                        initCookieChart(acceptCount, rejectCount);
-                        
-                        // Aktualisiere Statistik-Zusammenfassung
-                        const totalCount = acceptCount + rejectCount;
-                        document.getElementById("accept-count").textContent = acceptCount;
-                        document.getElementById("reject-count").textContent = rejectCount;
-                        document.getElementById("total-count").textContent = totalCount;
-                        
-                        // Berechne und aktualisiere die Akzeptanzrate
-                        const acceptRate = totalCount > 0 ? 
-                            Math.round((acceptCount / totalCount) * 100) : 0;
-                        document.getElementById("accept-rate").textContent = acceptRate + "%";
-                    });
-                }).catch(error => {
-                    console.error("Firebase error:", error);
-                    
-                    // Fallback auf localStorage
-                    const cookieChoices = JSON.parse(localStorage.getItem('cookieChoices') || '[]');
-                    
-                    // Zähle Akzeptiert und Abgelehnt
-                    const acceptCount = cookieChoices.filter(choice => choice.choice === 'accept').length;
-                    const rejectCount = cookieChoices.filter(choice => choice.choice === 'reject').length;
-                    const totalCount = acceptCount + rejectCount;
-                    
-                    // Aktualisiere Diagramm
-                    initCookieChart(acceptCount, rejectCount);
-                    
-                    // Aktualisiere Statistik-Zusammenfassung
-                    document.getElementById("accept-count").textContent = acceptCount;
-                    document.getElementById("reject-count").textContent = rejectCount;
-                    document.getElementById("total-count").textContent = totalCount;
-                    
-                    // Berechne und aktualisiere die Akzeptanzrate
-                    const acceptRate = totalCount > 0 ? 
-                        Math.round((acceptCount / totalCount) * 100) : 0;
-                    document.getElementById("accept-rate").textContent = acceptRate + "%";
-                });
+                }
+                
+                console.log(`Cookie-Daten geladen: ${acceptCount} akzeptiert, ${rejectCount} abgelehnt`); // Debug-Meldung
+                
+                // Aktualisiere Diagramm
+                initCookieChart(acceptCount, rejectCount);
+                
+                // Aktualisiere Statistik-Zusammenfassung
+                const totalCount = acceptCount + rejectCount;
+                document.getElementById("accept-count").textContent = acceptCount;
+                document.getElementById("reject-count").textContent = rejectCount;
+                document.getElementById("total-count").textContent = totalCount;
+                
+                // Berechne und aktualisiere die Akzeptanzrate
+                const acceptRate = totalCount > 0 ? 
+                    Math.round((acceptCount / totalCount) * 100) : 0;
+                document.getElementById("accept-rate").textContent = acceptRate + "%";
             }
             
             // Defaults-Diagramm initialisieren
@@ -807,65 +801,29 @@
             function loadDefaultsData() {
                 console.log("Defaults-Daten werden geladen"); // Debug-Meldung
                 
-                // Aus Firebase laden
-                database.ref('userDefaults').once('value').then((snapshot) => {
-                    const userDefaultsData = snapshot.val() || {};
-                    
-                    // Defaults in ein einfaches Array umwandeln
-                    let allDefaults = [];
-                    
-                    for (let userId in userDefaultsData) {
-                        const userDefaults = userDefaultsData[userId];
-                        for (let defaultId in userDefaults) {
-                            allDefaults.push(userDefaults[defaultId]);
-                        }
-                    }
-                    
-                    // Kategorien zählen
-                    const categories = ['gesund', 'ungesund', 'spart Geld', 'kostet Geld', 
-                                        'schützt Privatsphäre', 'verletzt Privatsphäre', 
-                                        'fördert Nachhaltigkeit', 'ist umweltschädlich'];
-                                        
-                    const categoryData = categories.map(category => {
-                        const defaultsInCategory = allDefaults.filter(d => d.category === category);
-                        return {
-                            category: category,
-                            count: defaultsInCategory.length,
-                            defaults: defaultsInCategory
-                        };
-                    });
-                    
-                    // Aktualisiere Diagramm
-                    initDefaultsChart(categoryData);
-                    
-                    // Aktualisiere Kategorie-Liste im neuen Format
-                    updateCategoryDisplay(categoryData);
-                }).catch(error => {
-                    console.error("Firebase error:", error);
-                    
-                    // Fallback auf localStorage
-                    const userDefaults = JSON.parse(localStorage.getItem('userDefaults') || '[]');
-                    
-                    // Kategorien zählen
-                    const categories = ['gesund', 'ungesund', 'spart Geld', 'kostet Geld', 
-                                        'schützt Privatsphäre', 'verletzt Privatsphäre', 
-                                        'fördert Nachhaltigkeit', 'ist umweltschädlich'];
-                                        
-                    const categoryData = categories.map(category => {
-                        const defaultsInCategory = userDefaults.filter(d => d.category === category);
-                        return {
-                            category: category,
-                            count: defaultsInCategory.length,
-                            defaults: defaultsInCategory
-                        };
-                    });
-                    
-                    // Aktualisiere Diagramm
-                    initDefaultsChart(categoryData);
-                    
-                    // Aktualisiere Kategorie-Liste im neuen Format
-                    updateCategoryDisplay(categoryData);
+                // User Defaults laden
+                const userDefaults = getStoredData('userDefaults');
+                
+                // Kategorien definieren
+                const categories = ['gesund', 'ungesund', 'spart Geld', 'kostet Geld', 
+                                    'schützt Privatsphäre', 'verletzt Privatsphäre', 
+                                    'fördert Nachhaltigkeit', 'ist umweltschädlich'];
+                
+                // Zählen der Defaults pro Kategorie
+                const categoryData = categories.map(category => {
+                    const defaultsInCategory = userDefaults.filter(d => d.category === category);
+                    return {
+                        category: category,
+                        count: defaultsInCategory.length,
+                        defaults: defaultsInCategory
+                    };
                 });
+                
+                // Aktualisiere Diagramm
+                initDefaultsChart(categoryData);
+                
+                // Aktualisiere Kategorie-Liste
+                updateCategoryDisplay(categoryData);
             }
             
             // Kategorie-Anzeige aktualisieren

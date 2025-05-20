@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Organspende-Präferenz</title>
-    <!-- Firebase SDK Integration -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         /* Global Styles */
         * {
@@ -142,51 +139,78 @@
     </div>
     
     <script>
-        // Firebase Konfiguration und Initialisierung
-        const firebaseConfig = {
-            apiKey: "AIzaSyDwdmMZphbOX0QHl1ltYUXYnFL9lZz-5UY",
-            authDomain: "organ-spender-tracking.firebaseapp.com",
-            databaseURL: "https://organ-spender-tracking-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "organ-spender-tracking",
-            storageBucket: "organ-spender-tracking.appspot.com",
-            messagingSenderId: "658539652373",
-            appId: "1:658539652373:web:59a18b887b6b9644c0de73"
-        };
-        
-        // Firebase initialisieren
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        
-        // Eindeutige Nutzer-ID generieren oder abrufen
-        function getUserId() {
-            let userId = getCookie('userId');
-            if (!userId) {
-                userId = 'user_' + new Date().getTime() + '_' + Math.random().toString(36).substring(2, 9);
-                setCookie('userId', userId, 365); // Cookie für 1 Jahr setzen
-            }
-            return userId;
-        }
-        
-        // Cookie-Helfer-Funktionen
+        // Hilffunktionen für Cookies
         function setCookie(name, value, days) {
-            const expires = new Date();
-            expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
-            document.cookie = name + '=' + value + ';expires=' + expires.toUTCString() + ';path=/;SameSite=Lax';
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            const expires = "; expires=" + date.toUTCString();
+            document.cookie = name + "=" + encodeURIComponent(JSON.stringify(value)) + expires + "; path=/; SameSite=Lax";
         }
         
         function getCookie(name) {
-            const cookieArr = document.cookie.split(';');
-            for (let i = 0; i < cookieArr.length; i++) {
-                const cookiePair = cookieArr[i].split('=');
-                if (name === cookiePair[0].trim()) {
-                    return decodeURIComponent(cookiePair[1]);
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) {
+                    try {
+                        return JSON.parse(decodeURIComponent(c.substring(nameEQ.length, c.length)));
+                    } catch (e) {
+                        return null;
+                    }
                 }
             }
             return null;
         }
         
+        // Generiere eine eindeutige ID für den Nutzer
+        function generateUserId() {
+            return 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+        }
+        
+        // Prüfe, ob der Nutzer bereits eine ID hat
+        function getUserId() {
+            let userId = getCookie('userId');
+            if (!userId) {
+                userId = generateUserId();
+                setCookie('userId', userId, 365); // 1 Jahr
+            }
+            return userId;
+        }
+        
+        // Speicherfunktionen
+        function getStoredData(key) {
+            // Erst versuchen vom Cookie zu lesen
+            const cookieData = getCookie('data_' + key);
+            if (cookieData) {
+                return cookieData;
+            }
+            
+            // Dann von localStorage
+            try {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : [];
+            } catch (e) {
+                console.error("localStorage error:", e);
+                return [];
+            }
+        }
+        
+        function storeData(key, data) {
+            // In Cookie speichern
+            setCookie('data_' + key, data, 365); // 1 Jahr
+            
+            // Auch in localStorage
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
+            } catch (e) {
+                console.error("localStorage error:", e);
+            }
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
-            // Cookie-Banner sofort anzeigen
+            // Cookie-Banner anzeigen
             document.getElementById("cookie-banner").style.display = "block";
             
             // Cookies akzeptieren
@@ -203,35 +227,35 @@
                 window.location.href = "survey.html";
             });
             
-            // Cookie-Entscheidung speichern - mit Firebase und lokalen Fallbacks
+            // Cookie-Entscheidung speichern
             function recordCookieChoice(choice) {
                 const userId = getUserId();
                 const timestamp = new Date().toISOString();
                 
-                // In Firebase speichern
-                database.ref('cookieChoices/' + userId).set({
-                    choice: choice,
-                    timestamp: timestamp
-                }).catch(error => {
-                    console.error("Firebase error:", error);
-                });
+                // Bestehende Daten laden
+                const cookieChoices = getStoredData('cookieChoices');
                 
-                // Backup in localStorage
-                try {
-                    const localData = localStorage.getItem('cookieChoices') ? 
-                        JSON.parse(localStorage.getItem('cookieChoices')) : [];
-                    localData.push({
+                // Prüfen, ob dieser User bereits eine Entscheidung getroffen hat
+                const existingChoice = cookieChoices.find(c => c.userId === userId);
+                
+                if (existingChoice) {
+                    // Bestehende Entscheidung aktualisieren
+                    existingChoice.choice = choice;
+                    existingChoice.timestamp = timestamp;
+                } else {
+                    // Neue Entscheidung hinzufügen
+                    cookieChoices.push({
                         userId: userId,
                         choice: choice,
                         timestamp: timestamp
                     });
-                    localStorage.setItem('cookieChoices', JSON.stringify(localData));
-                } catch (e) {
-                    console.log("localStorage nicht verfügbar:", e);
                 }
                 
-                // Auch direkten Cookie setzen
-                setCookie('cookieChoice', choice, 365); // 1 Jahr gültig
+                // Daten speichern
+                storeData('cookieChoices', cookieChoices);
+                
+                // Direkten Cookie für diese Entscheidung setzen
+                setCookie('cookieChoice', {choice: choice, timestamp: timestamp}, 365);
             }
         });
     </script>
