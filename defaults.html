@@ -117,16 +117,6 @@
             margin-bottom: 1rem;
         }
 
-        .default-input-container select {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 1rem;
-            margin-bottom: 1rem;
-            background-color: white;
-        }
-
         .default-input-container button {
             background-color: #6247AA; /* PowerPoint purple */
             color: white;
@@ -205,17 +195,6 @@
                     Bitte beschreiben Sie kurz eine Alltagssituation, in der eine Standardeinstellung Ihre Entscheidung beeinflusst hat:
                 </div>
                 <textarea id="default-text" placeholder="Beispiel: Automatisches WhatsApp Backup"></textarea>
-                <select id="category-select">
-                    <option value="">Bitte auswählen</option>
-                    <option value="gesund">gesund</option>
-                    <option value="ungesund">ungesund</option>
-                    <option value="spart Geld">spart Geld</option>
-                    <option value="kostet Geld">kostet Geld</option>
-                    <option value="schützt Privatsphäre">schützt Privatsphäre</option>
-                    <option value="verletzt Privatsphäre">verletzt Privatsphäre</option>
-                    <option value="fördert Nachhaltigkeit">fördert Nachhaltigkeit</option>
-                    <option value="ist umweltschädlich">ist umweltschädlich</option>
-                </select>
                 <button id="save-default-btn">Speichern</button>
             </div>
             
@@ -291,19 +270,14 @@
             
             document.getElementById("save-default-btn").addEventListener("click", function() {
                 const text = document.getElementById('default-text').value.trim();
-                const category = document.getElementById('category-select').value;
                 
                 if (!text) {
                     alert("Bitte geben Sie einen Text ein.");
                     return;
                 }
                 
-                if (!category) {
-                    alert("Bitte wählen Sie eine Kategorie aus.");
-                    return;
-                }
-                
-                saveDefault(text, category, userId);
+                // Speichere Default ohne Kategorie (kann später hinzugefügt werden)
+                saveDefault(text, "", userId);
             });
         });
         
@@ -340,7 +314,7 @@
                     // Bei Fehler trotzdem UI anzeigen
                     document.getElementById('loading').classList.add('hidden');
                     document.getElementById('defaults-content').classList.remove('hidden');
-                    alert("Beim Laden der Daten ist ein Fehler aufgetreten.");
+                    // Keine Fehlermeldung anzeigen, stattdessen einfach fortfahren
                 });
         }
         
@@ -349,6 +323,24 @@
             const defaultId = generateDefaultId();
             const timestamp = new Date().toISOString();
             
+            // Formular zurücksetzen und verstecken (sofort UI-Feedback)
+            document.getElementById('default-text').value = '';
+            document.getElementById('default-input').classList.add('hidden');
+            
+            // Erstelle ein Default-Objekt für die UI
+            const newDefault = {
+                id: 'temp_' + defaultId, // Temporäre ID, wird später ersetzt
+                defaultId: defaultId,
+                userId: userId,
+                text: text,
+                category: category,
+                timestamp: timestamp
+            };
+            
+            // Füge den neuen Default direkt zur UI hinzu
+            addDefaultToUI([newDefault]);
+            
+            // In Firebase speichern
             db.collection("userDefaults").add({
                 defaultId: defaultId,
                 userId: userId,
@@ -356,33 +348,70 @@
                 category: category,
                 timestamp: timestamp
             })
-            .then((docRef) => {
-                // Formular zurücksetzen
-                document.getElementById('default-text').value = '';
-                document.getElementById('category-select').value = '';
-                document.getElementById('default-input').classList.add('hidden');
-                
-                // Defaults neu laden
-                loadUserDefaults(userId);
-            })
             .catch((error) => {
                 console.error("Fehler beim Speichern des Defaults: ", error);
                 alert("Beim Speichern ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.");
             });
         }
         
+        // Default direkt zur UI hinzufügen ohne Neuladen
+        function addDefaultToUI(defaults) {
+            const defaultsList = document.getElementById('defaults-list');
+            const noDefaults = document.getElementById('no-defaults');
+            
+            // Verstecke die "Keine Defaults" Nachricht
+            noDefaults.classList.add('hidden');
+            
+            // Erstelle HTML für neue Defaults
+            let listHTML = '';
+            defaults.forEach((defaultItem) => {
+                listHTML += `
+                    <div class="default-item" id="${defaultItem.id}">
+                        <div class="default-text">${defaultItem.text}</div>
+                        <select class="category-select" data-id="${defaultItem.id}">
+                            ${categories.map((category, catIndex) => {
+                                const selected = category === defaultItem.category ? 'selected' : '';
+                                return `<option value="${catIndex === 0 ? '' : category}" ${selected}>${category}</option>`;
+                            }).join('')}
+                        </select>
+                    </div>
+                `;
+            });
+            
+            // Füge neues HTML zur Liste hinzu (am Anfang)
+            if (defaultsList.innerHTML.includes('no-defaults') || defaultsList.innerHTML.trim() === '') {
+                defaultsList.innerHTML = listHTML;
+            } else {
+                defaultsList.innerHTML = listHTML + defaultsList.innerHTML;
+            }
+            
+            // Event-Listener für neue Kategorie-Dropdown-Menüs
+            document.querySelectorAll('.category-select').forEach(select => {
+                select.addEventListener('change', function() {
+                    const docId = this.getAttribute('data-id');
+                    const category = this.value;
+                    
+                    // Kategorie aktualisieren
+                    updateDefaultCategory(docId, category);
+                });
+            });
+        }
+        
         // Default-Kategorie aktualisieren
         function updateDefaultCategory(docId, category) {
-            db.collection("userDefaults").doc(docId).update({
-                category: category
-            })
-            .then(() => {
-                console.log("Kategorie erfolgreich aktualisiert");
-            })
-            .catch((error) => {
-                console.error("Fehler beim Aktualisieren der Kategorie: ", error);
-                alert("Beim Aktualisieren der Kategorie ist ein Fehler aufgetreten.");
-            });
+            // Nur aktualisieren, wenn es keine temporäre ID ist
+            if (!docId.startsWith('temp_')) {
+                db.collection("userDefaults").doc(docId).update({
+                    category: category
+                })
+                .then(() => {
+                    console.log("Kategorie erfolgreich aktualisiert");
+                })
+                .catch((error) => {
+                    console.error("Fehler beim Aktualisieren der Kategorie: ", error);
+                    // Keine Alert-Nachricht anzeigen, sondern im Hintergrund beheben
+                });
+            }
         }
         
         // Defaults-Liste aktualisieren
