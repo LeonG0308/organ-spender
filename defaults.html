@@ -120,10 +120,20 @@
         .default-input-container button {
             background-color: #6247AA; /* PowerPoint purple */
             color: white;
+            margin-right: 1rem;
         }
 
         .default-input-container button:hover {
             background-color: #513c8c; /* Darker purple */
+        }
+
+        .btn-cancel {
+            background-color: #f1f1f1;
+            color: #333;
+        }
+
+        .btn-cancel:hover {
+            background-color: #e5e5e5;
         }
 
         .defaults-list {
@@ -196,6 +206,7 @@
                 </div>
                 <textarea id="default-text" placeholder="Beispiel: Automatisches WhatsApp Backup"></textarea>
                 <button id="save-default-btn">Speichern</button>
+                <button id="cancel-default-btn" class="btn-cancel">Abbrechen</button>
             </div>
             
             <div id="defaults-list" class="defaults-list">
@@ -264,8 +275,7 @@
             
             // Event-Listener für Buttons
             document.getElementById("add-default-btn").addEventListener("click", function() {
-                document.getElementById('default-input').classList.remove('hidden');
-                document.getElementById('default-text').focus();
+                showInputForm();
             });
             
             document.getElementById("save-default-btn").addEventListener("click", function() {
@@ -279,7 +289,23 @@
                 // Speichere Default ohne Kategorie (kann später hinzugefügt werden)
                 saveDefault(text, "", userId);
             });
+            
+            document.getElementById("cancel-default-btn").addEventListener("click", function() {
+                hideInputForm();
+            });
         });
+        
+        // Eingabeformular anzeigen
+        function showInputForm() {
+            document.getElementById('default-input').classList.remove('hidden');
+            document.getElementById('default-text').focus();
+        }
+        
+        // Eingabeformular verstecken und zurücksetzen
+        function hideInputForm() {
+            document.getElementById('default-input').classList.add('hidden');
+            document.getElementById('default-text').value = '';
+        }
         
         // Defaults des Nutzers laden
         function loadUserDefaults(userId) {
@@ -323,23 +349,6 @@
             const defaultId = generateDefaultId();
             const timestamp = new Date().toISOString();
             
-            // Formular zurücksetzen und verstecken (sofort UI-Feedback)
-            document.getElementById('default-text').value = '';
-            document.getElementById('default-input').classList.add('hidden');
-            
-            // Erstelle ein Default-Objekt für die UI
-            const newDefault = {
-                id: 'temp_' + defaultId, // Temporäre ID, wird später ersetzt
-                defaultId: defaultId,
-                userId: userId,
-                text: text,
-                category: category,
-                timestamp: timestamp
-            };
-            
-            // Füge den neuen Default direkt zur UI hinzu
-            addDefaultToUI([newDefault]);
-            
             // In Firebase speichern
             db.collection("userDefaults").add({
                 defaultId: defaultId,
@@ -347,6 +356,26 @@
                 text: text,
                 category: category,
                 timestamp: timestamp
+            })
+            .then((docRef) => {
+                console.log("Default erfolgreich gespeichert mit ID: ", docRef.id);
+                
+                // Erstelle ein Default-Objekt für die UI mit der echten Firebase-ID
+                const newDefault = {
+                    id: docRef.id, // Echte Firebase-Dokument-ID
+                    defaultId: defaultId,
+                    userId: userId,
+                    text: text,
+                    category: category,
+                    timestamp: timestamp
+                };
+                
+                // Füge den neuen Default direkt zur UI hinzu
+                addDefaultToUI([newDefault]);
+                
+                // Formular zurücksetzen aber NICHT verstecken (für mehrfache Eingabe)
+                document.getElementById('default-text').value = '';
+                document.getElementById('default-text').focus(); // Fokus für nächste Eingabe
             })
             .catch((error) => {
                 console.error("Fehler beim Speichern des Defaults: ", error);
@@ -366,7 +395,7 @@
             let listHTML = '';
             defaults.forEach((defaultItem) => {
                 listHTML += `
-                    <div class="default-item" id="${defaultItem.id}">
+                    <div class="default-item" id="item-${defaultItem.id}">
                         <div class="default-text">${defaultItem.text}</div>
                         <select class="category-select" data-id="${defaultItem.id}">
                             ${categories.map((category, catIndex) => {
@@ -399,19 +428,17 @@
         
         // Default-Kategorie aktualisieren
         function updateDefaultCategory(docId, category) {
-            // Nur aktualisieren, wenn es keine temporäre ID ist
-            if (!docId.startsWith('temp_')) {
-                db.collection("userDefaults").doc(docId).update({
-                    category: category
-                })
-                .then(() => {
-                    console.log("Kategorie erfolgreich aktualisiert");
-                })
-                .catch((error) => {
-                    console.error("Fehler beim Aktualisieren der Kategorie: ", error);
-                    // Keine Alert-Nachricht anzeigen, sondern im Hintergrund beheben
-                });
-            }
+            // Verwende echte Firebase-Dokument-ID
+            db.collection("userDefaults").doc(docId).update({
+                category: category
+            })
+            .then(() => {
+                console.log("Kategorie erfolgreich aktualisiert für Dokument ID: ", docId);
+            })
+            .catch((error) => {
+                console.error("Fehler beim Aktualisieren der Kategorie: ", error);
+                alert("Beim Aktualisieren der Kategorie ist ein Fehler aufgetreten.");
+            });
         }
         
         // Defaults-Liste aktualisieren
@@ -433,7 +460,7 @@
             let listHTML = '';
             defaults.forEach((defaultItem) => {
                 listHTML += `
-                    <div class="default-item">
+                    <div class="default-item" id="item-${defaultItem.id}">
                         <div class="default-text">${defaultItem.text}</div>
                         <select class="category-select" data-id="${defaultItem.id}">
                             ${categories.map((category, catIndex) => {
