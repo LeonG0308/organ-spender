@@ -388,42 +388,50 @@
             const defaultsList = document.getElementById('defaults-list');
             const noDefaults = document.getElementById('no-defaults');
             
-            // Verstecke die "Keine Defaults" Nachricht
-            noDefaults.classList.add('hidden');
-            
-            // Erstelle HTML für neue Defaults
-            let listHTML = '';
-            defaults.forEach((defaultItem) => {
-                listHTML += `
-                    <div class="default-item" id="item-${defaultItem.id}">
-                        <div class="default-text">${defaultItem.text}</div>
-                        <select class="category-select" data-id="${defaultItem.id}">
-                            ${categories.map((category, catIndex) => {
-                                const selected = category === defaultItem.category ? 'selected' : '';
-                                return `<option value="${catIndex === 0 ? '' : category}" ${selected}>${category}</option>`;
-                            }).join('')}
-                        </select>
-                    </div>
-                `;
-            });
-            
-            // Füge neues HTML zur Liste hinzu (am Anfang)
-            if (defaultsList.innerHTML.includes('no-defaults') || defaultsList.innerHTML.trim() === '') {
-                defaultsList.innerHTML = listHTML;
-            } else {
-                defaultsList.innerHTML = listHTML + defaultsList.innerHTML;
-            }
-            
-            // Event-Listener für neue Kategorie-Dropdown-Menüs
-            document.querySelectorAll('.category-select').forEach(select => {
-                select.addEventListener('change', function() {
-                    const docId = this.getAttribute('data-id');
-                    const category = this.value;
+            try {
+                // Verstecke die "Keine Defaults" Nachricht
+                noDefaults.classList.add('hidden');
+                
+                // Erstelle HTML für neue Defaults
+                defaults.forEach((defaultItem) => {
+                    // Prüfe, ob der Default bereits existiert
+                    if (document.getElementById(`item-${defaultItem.id}`)) {
+                        console.log("Default bereits vorhanden, überspringe: ", defaultItem.id);
+                        return; // Skip, wenn bereits vorhanden
+                    }
                     
-                    // Kategorie aktualisieren
-                    updateDefaultCategory(docId, category);
+                    const itemHTML = `
+                        <div class="default-item" id="item-${defaultItem.id}">
+                            <div class="default-text">${defaultItem.text}</div>
+                            <select class="category-select" data-id="${defaultItem.id}">
+                                ${categories.map((category, catIndex) => {
+                                    const selected = category === defaultItem.category ? 'selected' : '';
+                                    return `<option value="${catIndex === 0 ? '' : category}" ${selected}>${category}</option>`;
+                                }).join('')}
+                            </select>
+                        </div>
+                    `;
+                    
+                    // Füge den neuen Default am Anfang hinzu
+                    defaultsList.insertAdjacentHTML('afterbegin', itemHTML);
+                    
+                    // Event-Listener nur für den neuen Select hinzufügen
+                    const newSelect = document.querySelector(`#item-${defaultItem.id} .category-select`);
+                    if (newSelect) {
+                        newSelect.addEventListener('change', function() {
+                            const docId = this.getAttribute('data-id');
+                            const category = this.value;
+                            updateDefaultCategory(docId, category);
+                        });
+                    }
+                    
+                    console.log("Default erfolgreich zur UI hinzugefügt: ", defaultItem.id);
                 });
-            });
+                
+            } catch (error) {
+                console.error("Fehler in addDefaultToUI: ", error);
+                throw error; // Re-throw um den Fehler nach oben weiterzugeben
+            }
         }
         
         // Default-Kategorie aktualisieren
